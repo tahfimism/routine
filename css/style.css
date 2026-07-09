@@ -14,6 +14,59 @@ body {
     scrollbar-width: none;  /* Firefox */
 }
 
+/* Smooth global transitions for theme changes */
+body, header, main, footer, div, section, p, h1, h2, h3, span, button, nav, svg {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow, transform;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 350ms;
+}
+
+/* Interactive Card hover elevation scale */
+.schedule-card {
+    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.schedule-card:hover {
+    transform: translateY(-2px) scale(1.015);
+}
+
+/* Pulsing effect for live indicator */
+@keyframes pulse-glow {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+}
+.pulse-live {
+    animation: pulse-glow 2s infinite ease-in-out;
+}
+
+/* Timeline card fade-in animation on tab change */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.animate-fade-in {
+    animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Theme toggle rotation */
+.theme-icon {
+    transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.theme-icon-rotate {
+    transform: rotate(360deg) scale(0.9);
+}
+
 /* Custom styles for the Modal Popup */
 .modal-backdrop {
     backdrop-filter: blur(8px);

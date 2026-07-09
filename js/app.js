@@ -1,10 +1,15 @@
 let currentDayTab = "Sun";
+let currentViewMode = "daily"; // "daily" or "weekly"
+let realTimeInterval = null;
 
 // DOM Loaded Init
 window.addEventListener('DOMContentLoaded', () => {
     setupInitialDay();
     setupTheme();
     renderDaySchedule(currentDayTab);
+    
+    // Start the Routine Intelligence real-time updater
+    startRealTimeTracker();
     
     // Add global escape key listener to close modal
     window.addEventListener('keydown', (e) => {
@@ -39,12 +44,171 @@ function setupInitialDay() {
 // Handle Active Tabs rendering
 function switchTab(dayKey) {
     currentDayTab = dayKey;
+    
+    // Restart fade-in animation
+    const timelineWrapper = document.getElementById('daily-timeline-wrapper');
+    if (timelineWrapper) {
+        timelineWrapper.classList.remove('animate-fade-in');
+        timelineWrapper.offsetWidth; // Force browser layout reflow
+        timelineWrapper.classList.add('animate-fade-in');
+    }
+    
     renderDaySchedule(dayKey);
+}
+
+// Time Parsing Helper Utilities
+function parseTime(timeStr) {
+    const trimmed = timeStr.trim();
+    const parts = trimmed.split(/\s+/);
+    if (parts.length < 2) return { hours: 0, minutes: 0 };
+    const timeVal = parts[0];
+    const modifier = parts[1].toUpperCase();
+    
+    let [hours, minutes] = timeVal.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) {
+        hours += 12;
+    }
+    if (modifier === 'AM' && hours === 12) {
+        hours = 0;
+    }
+    return { hours, minutes };
+}
+
+function parseRange(rangeStr) {
+    // Replace wide en-dashes/em-dashes with standard hyphens
+    const parts = rangeStr.replace(/–|—/g, '-').split('-').map(s => s.trim());
+    if (parts.length < 2) return null;
+    const start = parseTime(parts[0]);
+    const end = parseTime(parts[1]);
+    return {
+        startMin: start.hours * 60 + start.minutes,
+        endMin: end.hours * 60 + end.minutes,
+        startStr: parts[0],
+        endStr: parts[1]
+    };
+}
+
+// Routine Intelligence - Ongoing Class and Countdown Banner Tracker
+function startRealTimeTracker() {
+    updateRealTimeStatus();
+    // Poll updates every 30 seconds
+    realTimeInterval = setInterval(updateRealTimeStatus, 30000);
+}
+
+function updateRealTimeStatus() {
+    const now = new Date();
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentDay = dayMap[now.getDay()];
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+    
+    const academicDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+    const isAcademic = academicDays.includes(currentDay);
+    
+    const banner = document.getElementById('countdown-banner');
+    
+    // If we're on the Daily view, update the card styles live
+    if (currentViewMode === 'daily') {
+        renderDaySchedule(currentDayTab);
+    }
+
+    // 1. Weekend / Off-Hours Greeting Banner State
+    if (!isAcademic) {
+        banner.innerHTML = `
+            <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span> Sunday classes start at 08:50 AM.</span>
+        `;
+        banner.classList.remove('hidden');
+        return;
+    }
+
+    const dayClasses = routineData[currentDay] || [];
+    if (dayClasses.length === 0) {
+        banner.innerHTML = `
+            <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+            <span>No more classes scheduled for today.</span>
+        `;
+        banner.classList.remove('hidden');
+        return;
+    }
+
+    let activeClass = null;
+    let nextClass = null;
+    let nextClassMinDiff = Infinity;
+
+    dayClasses.forEach(cls => {
+        const range = parseRange(cls.time);
+        if (!range) return;
+
+        if (currentMin >= range.startMin && currentMin < range.endMin) {
+            activeClass = {
+                data: cls,
+                remaining: range.endMin - currentMin
+            };
+        } else if (range.startMin > currentMin) {
+            const diff = range.startMin - currentMin;
+            if (diff < nextClassMinDiff) {
+                nextClassMinDiff = diff;
+                nextClass = {
+                    data: cls,
+                    minUntil: diff
+                };
+            }
+        }
+    });
+
+    // 2. Active Class Banner State
+    if (activeClass) {
+        banner.innerHTML = `
+            <span class="flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="text-emerald-700 dark:text-emerald-400">
+                Live Now: <span class="font-bold">${activeClass.data.code} &bull; ${activeClass.data.name}</span> (${activeClass.remaining} mins remaining)
+            </span>
+        `;
+        banner.classList.remove('hidden');
+        return;
+    }
+
+    // 3. Upcoming Class Countdown Banner State
+    if (nextClass) {
+        const firstTimeStr = nextClass.data.time.split(' – ')[0];
+        if (nextClass.minUntil <= 60) {
+            banner.innerHTML = `
+                <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Next class (<span class="font-bold">${nextClass.data.code}</span>) starts in ${nextClass.minUntil} minutes.</span>
+            `;
+        } else {
+            banner.innerHTML = `
+                <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span>Class schedule starts today at ${firstTimeStr}. First class: <span class="font-bold">${nextClass.data.code}</span>.</span>
+            `;
+        }
+        banner.classList.remove('hidden');
+        return;
+    }
+
+    // 4. Evening/All Classes Completed State
+    banner.innerHTML = `
+        <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>All classes completed for today.</span>
+    `;
+    banner.classList.remove('hidden');
 }
 
 // Render schedule items elegantly
 function renderDaySchedule(dayKey) {
-    // Highlight Tab Button
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach(btn => {
         if (btn.id === `tab-${dayKey}`) {
@@ -55,23 +219,26 @@ function renderDaySchedule(dayKey) {
     });
 
     const timeline = document.getElementById('classes-timeline');
+    if (!timeline) return;
     timeline.innerHTML = '';
 
     const dayClasses = routineData[dayKey] || [];
     
-    // Calculate and display "Starts at: time"
+    // Dynamic starts-at time calculation
     const dayInfo = document.getElementById('day-info');
-    if (dayClasses.length > 0) {
-        const firstTime = dayClasses[0].time.split(' – ')[0];
-        dayInfo.innerHTML = `
-            <svg class="w-3.5 h-3.5 text-cream-muted dark:text-charcoal-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span>Starts at: ${firstTime}</span>
-        `;
-        dayInfo.classList.remove('hidden');
-    } else {
-        dayInfo.classList.add('hidden');
+    if (dayInfo) {
+        if (dayClasses.length > 0) {
+            const firstTime = dayClasses[0].time.split(' – ')[0];
+            dayInfo.innerHTML = `
+                <svg class="w-3.5 h-3.5 text-cream-muted dark:text-charcoal-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Starts at: ${firstTime}</span>
+            `;
+            dayInfo.classList.remove('hidden');
+        } else {
+            dayInfo.classList.add('hidden');
+        }
     }
 
     if (dayClasses.length === 0) {
@@ -83,15 +250,41 @@ function renderDaySchedule(dayKey) {
         return;
     }
 
-    // Render classes cards in a highly sleek line layout
+    const now = new Date();
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentSystemDay = dayMap[now.getDay()];
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+
     dayClasses.forEach((cls, index) => {
         const isSessional = cls.type === 'Sessional';
-        const pillTheme = isSessional 
+        let pillTheme = isSessional 
             ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30' 
             : 'text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/40';
 
+        // Check if class is live *right now*
+        let isLive = false;
+        let elapsedMins = 0;
+        let remainingMins = 0;
+        let progressPercent = 0;
+
+        if (dayKey === currentSystemDay) {
+            const range = parseRange(cls.time);
+            if (range && currentMin >= range.startMin && currentMin < range.endMin) {
+                isLive = true;
+                elapsedMins = currentMin - range.startMin;
+                const totalMins = range.endMin - range.startMin;
+                progressPercent = Math.min(100, Math.max(0, (elapsedMins / totalMins) * 100));
+                remainingMins = range.endMin - currentMin;
+            }
+        }
+
+        // Apply dynamic highlighting classes for live ongoing card
+        const cardBorderTheme = isLive 
+            ? 'border-emerald-500/50 dark:border-emerald-500/40 bg-emerald-50/10 dark:bg-emerald-950/5 ring-1 ring-emerald-500/10 shadow-md'
+            : 'border-cream-border dark:border-charcoal-border hover:border-neutral-300 dark:hover:border-neutral-700';
+
         timeline.innerHTML += `
-            <div onclick="openClassModal('${dayKey}', ${index})" class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-xl p-5 hover:border-neutral-300 dark:hover:border-neutral-700 cursor-pointer transition duration-200 select-none">
+            <div onclick="openClassModal('${dayKey}', ${index})" class="schedule-card bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-5 cursor-pointer transition duration-250 select-none">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div class="flex items-start gap-3">
                         <div class="mt-1">
@@ -100,8 +293,9 @@ function renderDaySchedule(dayKey) {
                             </span>
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+                            <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100 leading-tight flex items-center gap-1.5">
                                 ${cls.code} &bull; ${cls.name}
+                                ${isLive ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live" title="Live ongoing class"></span>` : ''}
                             </h3>
                             <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-1 font-medium">
                                 Instructors: ${cls.instructors.join(' &bull; ')}
@@ -115,9 +309,157 @@ function renderDaySchedule(dayKey) {
                         </span>
                     </div>
                 </div>
+                ${isLive ? `
+                    <div class="mt-3.5 w-full bg-neutral-200/50 dark:bg-neutral-800/80 rounded-full h-1 overflow-hidden">
+                        <div class="bg-emerald-500 h-full rounded-full" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="flex justify-between items-center mt-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span class="flex items-center gap-1">
+                            <span class="w-1 h-1 rounded-full bg-emerald-500 pulse-live"></span>
+                            Ongoing (${elapsedMins}m elapsed)
+                        </span>
+                        <span>${remainingMins}m remaining</span>
+                    </div>
+                ` : ''}
             </div>
         `;
     });
+}
+
+// Render the 5-Day Weekly Grid Layout
+function renderWeeklyGrid() {
+    const container = document.getElementById('weekly-grid-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+    const dayFullNames = {
+        'Sun': 'Sunday',
+        'Mon': 'Monday',
+        'Tue': 'Tuesday',
+        'Wed': 'Wednesday',
+        'Thu': 'Thursday'
+    };
+
+    const now = new Date();
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentSystemDay = dayMap[now.getDay()];
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+
+    days.forEach(dayKey => {
+        const dayClasses = routineData[dayKey] || [];
+        let startsAtText = "No classes";
+        if (dayClasses.length > 0) {
+            startsAtText = `Starts at: ${dayClasses[0].time.split(' – ')[0]}`;
+        }
+
+        const isToday = dayKey === currentSystemDay;
+
+        let cardsHtml = '';
+        if (dayClasses.length === 0) {
+            cardsHtml = `
+                <div class="py-4 px-6 text-center text-[10px] text-cream-muted dark:text-charcoal-muted font-medium border border-dashed border-cream-border dark:border-charcoal-border rounded-lg select-none whitespace-nowrap">
+                    No classes
+                </div>
+            `;
+        } else {
+            dayClasses.forEach((cls, index) => {
+                const isSessional = cls.type === 'Sessional';
+                const dotColor = isSessional ? 'bg-emerald-500' : 'bg-neutral-400 dark:bg-neutral-500';
+
+                // Check live class in weekly view
+                let isLive = false;
+                if (isToday) {
+                    const range = parseRange(cls.time);
+                    if (range && currentMin >= range.startMin && currentMin < range.endMin) {
+                        isLive = true;
+                    }
+                }
+
+                const cardBorderTheme = isLive
+                    ? 'border-emerald-500/50 dark:border-emerald-500/40 bg-emerald-50/10 dark:bg-emerald-950/5 ring-1 ring-emerald-500/10 shadow-sm'
+                    : 'border-cream-border dark:border-charcoal-border hover:border-neutral-300 dark:hover:border-neutral-700';
+
+                cardsHtml += `
+                    <div onclick="openClassModal('${dayKey}', ${index})" class="schedule-card shrink-0 w-[130px] md:w-[145px] bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-3 cursor-pointer select-none text-left transition duration-150 flex flex-col justify-between min-h-[85px]">
+                        <div>
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <div class="flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full ${dotColor}"></span>
+                                    <span class="text-[8px] font-extrabold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted">${isSessional ? 'Sess' : 'Theo'}</span>
+                                </div>
+                                ${isLive ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live"></span>` : ''}
+                            </div>
+                            <h4 class="text-xs font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight">
+                                ${cls.code}
+                            </h4>
+                        </div>
+                        <div class="mt-2.5 pt-1.5 border-t border-cream-border/60 dark:border-charcoal-border/50 flex flex-col gap-0.5 text-[9px] font-semibold text-cream-muted dark:text-charcoal-muted">
+                            <span class="font-medium">${cls.time.split(' – ')[0]}</span>
+                            <span class="text-neutral-400 dark:text-neutral-500 font-bold truncate">${cls.instructors.join(' &bull; ')}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Row highlighting and padding
+        const rowClass = isToday 
+            ? 'bg-neutral-100/30 dark:bg-neutral-900/10 border-neutral-300/80 dark:border-neutral-850 py-4 px-4 rounded-2xl'
+            : 'py-4';
+
+        container.innerHTML += `
+            <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 ${rowClass} border-b border-cream-border/40 dark:border-charcoal-border/30 last:border-0">
+                <!-- Day Label Column -->
+                <div class="w-full md:w-32 shrink-0 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start select-none">
+                    <span class="font-extrabold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                        ${dayFullNames[dayKey]}
+                        ${isToday ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live" title="Today"></span>` : ''}
+                    </span>
+                    <span class="text-[10px] font-bold text-cream-muted dark:text-charcoal-muted mt-0.5">${startsAtText}</span>
+                </div>
+                
+                <!-- Cards Horizontal Scroller -->
+                <div class="flex gap-3 overflow-x-auto scrollbar-none pb-2 flex-nowrap -mx-6 px-6 md:mx-0 md:px-0">
+                    ${cardsHtml}
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Switch between Daily view list and Weekly calendar grid
+function toggleViewMode(view) {
+    currentViewMode = view;
+    
+    const dailySec = document.getElementById('daily-view-section');
+    const weeklySec = document.getElementById('weekly-view-section');
+    const btnDaily = document.getElementById('btn-view-daily');
+    const btnWeekly = document.getElementById('btn-view-weekly');
+    
+    if (view === 'weekly') {
+        dailySec.classList.add('hidden');
+        weeklySec.classList.remove('hidden');
+        
+        // Update active class triggers on toggle controls
+        btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50";
+        btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm";
+        
+        // Render the calendar grid
+        renderWeeklyGrid();
+    } else {
+        weeklySec.classList.add('hidden');
+        dailySec.classList.remove('hidden');
+        
+        btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50";
+        btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm";
+        
+        // Redraw list to calculate ongoing class stats
+        renderDaySchedule(currentDayTab);
+    }
+    
+    // Update live banner immediately when toggling views
+    updateRealTimeStatus();
 }
 
 // Modal handling logic
@@ -153,7 +495,7 @@ function openClassModal(dayKey, index) {
     cls.instructors.forEach(acronym => {
         const fullName = teacherDirectory[acronym] || acronym;
         instructorsList.innerHTML += `
-            <li class="flex items-center gap-2 text-neutral-700 dark:text-neutral-300 text-sm">
+            <li class="flex items-center gap-2 text-neutral-700 dark:text-neutral-300 text-sm font-semibold">
                 <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600"></span>
                 <span>${fullName} (${acronym})</span>
             </li>
@@ -183,6 +525,7 @@ function openClassModal(dayKey, index) {
 
 function closeModal() {
     const modal = document.getElementById('detail-modal');
+    if (!modal) return;
     modal.classList.remove('active');
     
     // Hide modal and restore body scroll after animation completes
@@ -210,6 +553,20 @@ function setupTheme() {
 function toggleDarkMode() {
     const isDark = document.documentElement.classList.toggle('dark');
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
-    document.getElementById('sun-icon').classList.toggle('hidden', !isDark);
-    document.getElementById('moon-icon').classList.toggle('hidden', isDark);
+    
+    const sunIcon = document.getElementById('sun-icon');
+    const moonIcon = document.getElementById('moon-icon');
+    
+    const activeIcon = isDark ? sunIcon : moonIcon;
+    const inactiveIcon = isDark ? moonIcon : sunIcon;
+    
+    // Switch visibility
+    inactiveIcon.classList.add('hidden');
+    activeIcon.classList.remove('hidden');
+    
+    // Trigger rotation transition
+    activeIcon.classList.add('theme-icon-rotate');
+    setTimeout(() => {
+        activeIcon.classList.remove('theme-icon-rotate');
+    }, 500);
 }

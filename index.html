@@ -46,53 +46,76 @@
     <!-- Header Frame -->
     <header class="max-w-3xl w-full mx-auto px-6 pt-12 pb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">ECE 2/1</h1>
+            <h1 class="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">ECE 2-1 routine</h1>
             <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5">Khulna University of Engineering & Technology</p>
         </div>
         
-        <!-- Subtle Theme Toggle -->
-        <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Toggle Dark Mode">
-            <svg id="sun-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
-            </svg>
-            <svg id="moon-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
-            </svg>
-        </button>
+        <div class="flex items-center gap-3">
+            <!-- View Mode Switch -->
+            <div class="flex items-center rounded-lg bg-neutral-100 dark:bg-neutral-900/50 p-1 border border-cream-border dark:border-charcoal-border text-xs font-semibold select-none">
+                <button onclick="toggleViewMode('daily')" id="btn-view-daily" class="px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm">Daily</button>
+                <button onclick="toggleViewMode('weekly')" id="btn-view-weekly" class="px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-950 dark:hover:text-neutral-50">Weekly</button>
+            </div>
+
+            <!-- Subtle Theme Toggle -->
+            <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Toggle Dark Mode">
+                <svg id="sun-icon" class="theme-icon w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m12.728 0l-.707-.707M6.343 6.364l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"></path>
+                </svg>
+                <svg id="moon-icon" class="theme-icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                </svg>
+            </button>
+        </div>
     </header>
 
     <!-- Main Schedule Container -->
-    <main class="max-w-3xl w-full mx-auto px-6 flex-grow flex flex-col gap-8">
+    <main class="max-w-3xl w-full mx-auto px-6 flex-grow flex flex-col gap-6">
         
-        <!-- Day Navigation Tabs -->
-        <nav class="flex border-b border-cream-border dark:border-charcoal-border overflow-x-auto scrollbar-none">
-            <div class="flex gap-8 pb-px">
-                <button onclick="switchTab('Sun')" id="tab-Sun" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Sunday</button>
-                <button onclick="switchTab('Mon')" id="tab-Mon" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Monday</button>
-                <button onclick="switchTab('Tue')" id="tab-Tue" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Tuesday</button>
-                <button onclick="switchTab('Wed')" id="tab-Wed" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Wednesday</button>
-                <button onclick="switchTab('Thu')" id="tab-Thu" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Thursday</button>
-            </div>
-        </nav>
+        <!-- Routine Intelligence Banner -->
+        <div id="countdown-banner" class="hidden p-4 rounded-xl border border-cream-border dark:border-charcoal-border bg-neutral-50/40 dark:bg-neutral-900/20 text-xs font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+            <!-- Countdown timer or greeting states injected dynamically -->
+        </div>
 
-        <!-- Day Section: Contains start time and classes timeline -->
-        <div class="flex flex-col gap-4">
-            <!-- Minimal start time info -->
-            <div id="day-info" class="text-xs font-semibold text-cream-muted dark:text-charcoal-muted tracking-wide flex items-center gap-1.5 opacity-90 transition-all select-none">
-                <!-- Starts at: 08:50 AM (Injected dynamically) -->
-            </div>
+        <!-- Daily View Section -->
+        <div id="daily-view-section" class="flex flex-col gap-6">
+            <!-- Day Navigation Tabs -->
+            <nav class="flex border-b border-cream-border dark:border-charcoal-border overflow-x-auto scrollbar-none">
+                <div class="flex gap-8 pb-px">
+                    <button onclick="switchTab('Sun')" id="tab-Sun" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Sunday</button>
+                    <button onclick="switchTab('Mon')" id="tab-Mon" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Monday</button>
+                    <button onclick="switchTab('Tue')" id="tab-Tue" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Tuesday</button>
+                    <button onclick="switchTab('Wed')" id="tab-Wed" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Wednesday</button>
+                    <button onclick="switchTab('Thu')" id="tab-Thu" class="tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0">Thursday</button>
+                </div>
+            </nav>
 
-            <!-- Dynamic Classes List -->
-            <section id="classes-timeline" class="space-y-4">
-                <!-- Items injected by JavaScript -->
-            </section>
+            <!-- Day Section: Contains start time and classes timeline -->
+            <div id="daily-timeline-wrapper" class="flex flex-col gap-4 animate-fade-in">
+                <!-- Minimal start time info -->
+                <div id="day-info" class="text-xs font-semibold text-cream-muted dark:text-charcoal-muted tracking-wide flex items-center gap-1.5 opacity-90 transition-all select-none">
+                    <!-- Starts at: 08:50 AM (Injected dynamically) -->
+                </div>
+
+                <!-- Dynamic Classes List -->
+                <section id="classes-timeline" class="space-y-4">
+                    <!-- Items injected by JavaScript -->
+                </section>
+            </div>
+        </div>
+
+        <!-- Weekly View Section -->
+        <div id="weekly-view-section" class="hidden flex flex-col gap-6 animate-fade-in">
+            <div id="weekly-grid-container" class="flex flex-col gap-6 divide-y divide-cream-border/60 dark:divide-charcoal-border/50">
+                <!-- Injected dynamically by JavaScript -->
+            </div>
         </div>
         
     </main>
 
     <!-- Minimal Subtle Footer -->
     <footer class="max-w-3xl w-full mx-auto px-6 py-12 text-center text-[11px] text-cream-muted/75 dark:text-charcoal-muted/65 tracking-wide">
-        <p>Department of Electronics and Communication Engineering &bull; ECE-102</p>
+        <p>Made by Nakib - 2409007</p>
     </footer>
 
     <!-- Premium Detail Modal -->
@@ -165,7 +188,7 @@
     </div>
 
     <!-- Core Data and Application Logic -->
-    <script src="js/data.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/data.js?v=2"></script>
+    <script src="js/app.js?v=2"></script>
 </body>
 </html>
