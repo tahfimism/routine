@@ -58,10 +58,10 @@ const routines = {
         "subtitle": "East West University (EWU)",
         "palette": {
             "bg": "#EAE2F8",
-            "card": "#FFFFFF",
+            "card": "#dab2f2",
             "border": "#D1C4E9",
-            "text": "#311B92",
-            "muted": "#673AB7"
+            "text": "#33185c",
+            "muted": "#584949"
         },
         "teacherDirectory": {},
         "data": {
