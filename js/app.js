@@ -10,6 +10,9 @@ let currentRoutine = null;
 let notificationsEnabled = localStorage.getItem('notifications_enabled') === 'true';
 let sentNotifications = {};
 
+// PWA Install Prompt State
+let deferredPrompt = null;
+
 // DOM Loaded Init
 window.addEventListener('DOMContentLoaded', () => {
     // Check if query parameter 'r' is present and matches a valid routine id
@@ -49,6 +52,7 @@ window.addEventListener('DOMContentLoaded', () => {
     setupTheme();
     renderDaySchedule(currentDayTab);
     updateNotificationUI();
+    updateViewModeUI();
     
     // Start the Routine Intelligence real-time updater
     startRealTimeTracker();
@@ -88,6 +92,46 @@ window.addEventListener('DOMContentLoaded', () => {
         }).catch((err) => {
             console.warn('Service Worker registration failed:', err);
         });
+    }
+
+    // Setup footer PWA install action triggers
+    const footerInstallBtn = document.getElementById('pwa-footer-install-btn');
+    if (footerInstallBtn) {
+        footerInstallBtn.addEventListener('click', () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    }
+                    deferredPrompt = null;
+                    dismissPwaBanner();
+                    footerInstallBtn.classList.add('hidden');
+                });
+            } else {
+                // For iOS or browsers without a direct prompt event, open our custom guidance dialog
+                sessionStorage.removeItem('pwa_banner_dismissed'); // Force show banner again
+                const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                showPwaBanner(isiOS ? 'ios' : 'android');
+            }
+        });
+    }
+
+    // Capture standard PWA install prompts (Android Chrome / Desktop Chrome)
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); // Prevent standard mini-infobar prompt
+        deferredPrompt = e;
+        showPwaBanner('android');
+        if (footerInstallBtn) footerInstallBtn.classList.remove('hidden');
+    });
+
+    // Check if device is iOS and not already running in installed standalone app
+    const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    
+    if (isiOS && !isStandalone) {
+        showPwaBanner('ios');
+        if (footerInstallBtn) footerInstallBtn.classList.remove('hidden');
     }
 });
 
@@ -545,21 +589,30 @@ function renderWeeklyGrid() {
 }
 
 // Switch between Daily view list and Weekly calendar grid
-function toggleViewMode(view) {
-    currentViewMode = view;
+function toggleViewMode() {
+    currentViewMode = (currentViewMode === 'daily') ? 'weekly' : 'daily';
     
+    // Update live banner immediately when toggling views
+    updateRealTimeStatus();
+    updateViewModeUI();
+}
+
+function updateViewModeUI() {
     const dailySec = document.getElementById('daily-view-section');
     const weeklySec = document.getElementById('weekly-view-section');
-    const btnDaily = document.getElementById('btn-view-daily');
-    const btnWeekly = document.getElementById('btn-view-weekly');
+    const toggleBtn = document.getElementById('btn-view-toggle');
+    if (!dailySec || !weeklySec || !toggleBtn) return;
     
-    if (view === 'weekly') {
+    if (currentViewMode === 'weekly') {
         dailySec.classList.add('hidden');
         weeklySec.classList.remove('hidden');
         
-        // Update active class triggers on toggle controls
-        btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50";
-        btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-cream-text dark:text-charcoal-text bg-white dark:bg-neutral-800 shadow-sm";
+        toggleBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z M4 10h16 M10 4v16" />
+            </svg>
+            <span id="view-toggle-text">Weekly</span>
+        `;
         
         // Render the calendar grid
         renderWeeklyGrid();
@@ -567,15 +620,16 @@ function toggleViewMode(view) {
         weeklySec.classList.add('hidden');
         dailySec.classList.remove('hidden');
         
-        btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50";
-        btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-cream-text dark:text-charcoal-text bg-white dark:bg-neutral-800 shadow-sm";
+        toggleBtn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            <span id="view-toggle-text">Daily</span>
+        `;
         
         // Redraw list to calculate ongoing class stats
         renderDaySchedule(currentDayTab);
     }
-    
-    // Update live banner immediately when toggling views
-    updateRealTimeStatus();
 }
 
 // Settings modal options handlers
@@ -801,7 +855,7 @@ async function toggleNotifications() {
 
     if (notificationsEnabled) {
         showNotification("Class Alerts Enabled", {
-            body: "We will notify you 5 minutes before your classes start.",
+            body: "We will notify you 10 minutes before your classes start.",
             tag: "alert-config"
         });
     }
@@ -871,14 +925,14 @@ function checkUpcomingClassAlerts() {
         const minutesDiff = range.startMin - currentMin;
         const roomStr = cls.room || 'ECE-102';
 
-        // 1. Alert 5 minutes before class start
-        if (minutesDiff === 5) {
-            const alertKey = `${dateStr}_${cls.code}_5m`;
+        // 1. Alert 10 minutes before class start
+        if (minutesDiff === 10) {
+            const alertKey = `${dateStr}_${cls.code}_10m`;
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
-                showNotification(`Class starts in 5 minutes!`, {
+                showNotification(`Class starts in 10 minutes!`, {
                     body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
-                    tag: `class-5m-${cls.code}`,
+                    tag: `class-10m-${cls.code}`,
                     requireInteraction: true
                 });
             }
@@ -897,4 +951,57 @@ function checkUpcomingClassAlerts() {
             }
         }
     });
+}
+
+// Display the PWA installation promotion banner
+function showPwaBanner(platform) {
+    if (sessionStorage.getItem('pwa_banner_dismissed') === 'true') return;
+
+    const banner = document.getElementById('pwa-install-banner');
+    const desc = document.getElementById('pwa-install-desc');
+    const btn = document.getElementById('pwa-install-btn');
+    if (!banner || !desc || !btn) return;
+
+    if (platform === 'ios') {
+        desc.innerText = "Tap the Share icon, then scroll down and select 'Add to Home Screen' for offline access and alerts.";
+        btn.classList.add('hidden'); // Programmatic triggers not supported on iOS Safari
+    } else {
+        btn.classList.remove('hidden');
+        
+        // Remove previous listeners (if any) and attach fresh click listener
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        
+        newBtn.addEventListener('click', () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                }
+                deferredPrompt = null;
+                dismissPwaBanner();
+            });
+        });
+    }
+
+    // Slide up animation
+    banner.classList.remove('hidden');
+    banner.offsetHeight; // Force layout reflow
+    banner.classList.remove('opacity-0', 'translate-y-8');
+    banner.classList.add('opacity-100', 'translate-y-0');
+}
+
+// Slide down and dismiss the PWA promotion banner
+function dismissPwaBanner() {
+    const banner = document.getElementById('pwa-install-banner');
+    if (!banner) return;
+    
+    banner.classList.remove('opacity-100', 'translate-y-0');
+    banner.classList.add('opacity-0', 'translate-y-8');
+    setTimeout(() => {
+        banner.classList.add('hidden');
+    }, 300);
+    
+    sessionStorage.setItem('pwa_banner_dismissed', 'true');
 }

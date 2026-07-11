@@ -1,0 +1,11 @@
+<svg width="160" height="128" viewBox="0 0 40 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Card (transparent background, no container) -->
+  <rect x="2" y="2" width="36" height="28" rx="7" fill="#FFFFFF" stroke="#E6DFD2" stroke-width="1"/>
+
+  <!-- Active accent bar -->
+  <rect x="2" y="4" width="5" height="24" rx="2.5" fill="#10B981"/>
+
+  <!-- Text lines: course code + time -->
+  <line x1="13" y1="12" x2="31" y2="12" stroke="#171717" stroke-opacity="0.6" stroke-width="2.6" stroke-linecap="round"/>
+  <line x1="13" y1="20" x2="25" y2="20" stroke="#171717" stroke-opacity="0.32" stroke-width="2.2" stroke-linecap="round"/>
+</svg>

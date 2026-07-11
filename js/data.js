@@ -20,35 +20,35 @@ const routines = {
         },
         "data": {
             "Sun": [
-                { "time": "08:50 AM – 09:40 AM", "code": "ECE 2101", "name": "Electronic Devices & Circuits I", "type": "Theory", "instructors": ["Ayesha mam"], "period": "2nd Period", "room": "ECE-102" },
-                { "time": "09:40 AM – 10:30 AM", "code": "ECE 2107", "name": "Electromagnetic Fields & Waves", "type": "Theory", "instructors": ["Rahul sir", "Arnob sir"], "period": "3rd Period", "room": "ECE-102" },
-                { "time": "11:30 AM – 01:10 PM", "code": "ME 2110", "name": "Mechanical Engineering Sessional", "type": "Sessional", "instructors": ["Shadid sir", "AMB"], "group": "Group A/B", "period": "5th & 6th Period", "room": "ECE-102" }
+                { "time": "08:50 AM – 09:40 AM", "code": "ECE 2101", "name": "Analog Electronics-II", "type": "Theory", "instructors": ["Ayesha mam"], "period": "2nd Period", "room": "ECE-102" },
+                { "time": "09:40 AM – 10:30 AM", "code": "ECE 2107", "name": "Signals and Systems", "type": "Theory", "instructors": ["Rahul sir", "Arnob sir"], "period": "3rd Period", "room": "ECE-102" },
+                { "time": "11:30 AM – 01:10 PM", "code": "ME 2110", "name": "Engineering Drawing", "type": "Sessional", "instructors": ["Shadid sir", "AMB"], "group": "Group A/B", "period": "5th & 6th Period", "room": "ECE-102" }
             ],
             "Mon": [
-                { "time": "10:40 AM – 11:30 AM", "code": "ECE 2107", "name": "Electromagnetic Fields & Waves", "type": "Theory", "instructors": ["Rahul sir"], "period": "4th Period", "room": "ECE-102" },
-                { "time": "11:30 AM – 12:20 PM", "code": "Math 2109", "name": "Fourier Analysis & Laplace Transform", "type": "Theory", "instructors": ["Aarif sir"], "period": "5th Period", "room": "ECE-102" },
-                { "time": "12:20 PM – 01:10 PM", "code": "ECE 2101", "name": "Electronic Devices & Circuits I", "type": "Theory", "instructors": ["Shafrin mam", "Ayesha mam"], "period": "6th Period", "room": "ECE-102" },
-                { "time": "02:30 PM – 05:00 PM", "code": "ECE 2104", "name": "Digital Electronics Sessional", "type": "Sessional", "instructors": ["Foisal Sir", "Sharif sir"], "group": "Group A/B", "period": "7th, 8th & 9th Period", "room": "ECE-102" }
+                { "time": "10:40 AM – 11:30 AM", "code": "ECE 2107", "name": "Signals and Systems", "type": "Theory", "instructors": ["Rahul sir"], "period": "4th Period", "room": "ECE-102" },
+                { "time": "11:30 AM – 12:20 PM", "code": "Math 2109", "name": "Vector, Matrix and Transform", "type": "Theory", "instructors": ["Aarif sir"], "period": "5th Period", "room": "ECE-102" },
+                { "time": "12:20 PM – 01:10 PM", "code": "ECE 2101", "name": "Analog Electronics-II", "type": "Theory", "instructors": ["Shafrin mam", "Ayesha mam"], "period": "6th Period", "room": "ECE-102" },
+                { "time": "02:30 PM – 05:00 PM", "code": "ECE 2104", "name": "Digital Electronics and Logic Circuits Laboratory", "type": "Sessional", "instructors": ["Foisal Sir", "Sharif sir"], "group": "Group A/B", "period": "7th, 8th & 9th Period", "room": "ECE-102" }
             ],
             "Tue": [
-                { "time": "09:40 AM – 10:30 AM", "code": "ECE 2103", "name": "Digital Electronics", "type": "Theory", "instructors": ["Foisal Sir"], "period": "3rd Period", "room": "ECE-102" },
-                { "time": "10:40 AM – 11:30 AM", "code": "ECE 2105", "name": "Network Analysis & Synthesis", "type": "Theory", "instructors": ["Masuk sir"], "period": "4th Period", "room": "ECE-102" },
-                { "time": "11:30 AM – 12:20 PM", "code": "ECE 2107", "name": "Electromagnetic Fields & Waves", "type": "Theory", "instructors": ["Arnob sir"], "period": "5th Period", "room": "ECE-102" },
-                { "time": "12:20 PM – 01:10 PM", "code": "Math 2109", "name": "Fourier Analysis & Laplace Transform", "type": "Theory", "instructors": ["Aarif sir", "Shakil sir"], "period": "6th Period", "room": "ECE-102" }
+                { "time": "09:40 AM – 10:30 AM", "code": "ECE 2103", "name": "Digital Electronics and Logic Circuits", "type": "Theory", "instructors": ["Foisal Sir"], "period": "3rd Period", "room": "ECE-102" },
+                { "time": "10:40 AM – 11:30 AM", "code": "ECE 2105", "name": "Electromagnetic Fields and Waves", "type": "Theory", "instructors": ["Masuk sir"], "period": "4th Period", "room": "ECE-102" },
+                { "time": "11:30 AM – 12:20 PM", "code": "ECE 2107", "name": "Signals and Systems", "type": "Theory", "instructors": ["Arnob sir"], "period": "5th Period", "room": "ECE-102" },
+                { "time": "12:20 PM – 01:10 PM", "code": "Math 2109", "name": "Vector, Matrix and Transform", "type": "Theory", "instructors": ["Aarif sir", "Shakil sir"], "period": "6th Period", "room": "ECE-102" }
             ],
             "Wed": [
-                { "time": "08:00 AM – 10:30 AM", "code": "CSE 2100", "name": "Software Development Sessional", "type": "Sessional", "instructors": ["Ayesha mam", "SI"], "group": "Group A/B", "period": "1st, 2nd & 3rd Period", "room": "ECE-102" },
-                { "time": "10:40 AM – 11:30 AM", "code": "Math 2109", "name": "Fourier Analysis & Laplace Transform", "type": "Theory", "instructors": ["Shakil sir"], "period": "4th Period", "room": "ECE-102" },
-                { "time": "11:30 AM – 12:20 PM", "code": "ECE 2103", "name": "Digital Electronics", "type": "Theory", "instructors": ["Foisal Sir", "Sharif sir"], "period": "5th Period", "room": "ECE-102" },
-                { "time": "12:20 PM – 01:10 PM", "code": "ECE 2105", "name": "Network Analysis & Synthesis", "type": "Theory", "instructors": ["Shonglap sir"], "period": "6th Period", "room": "ECE-102" },
-                { "time": "02:30 PM – 05:00 PM", "code": "ECE 2104", "name": "Digital Electronics Sessional", "type": "Sessional", "instructors": ["Foisal Sir", "Sharif sir"], "group": "Group A/B", "period": "7th, 8th & 9th Period", "room": "ECE-102" }
+                { "time": "08:00 AM – 10:30 AM", "code": "CSE 2100", "name": "Object Oriented Programming Laboratory", "type": "Sessional", "instructors": ["Ayesha mam", "SI"], "group": "Group A/B", "period": "1st, 2nd & 3rd Period", "room": "ECE-102" },
+                { "time": "10:40 AM – 11:30 AM", "code": "Math 2109", "name": "Vector, Matrix and Transform", "type": "Theory", "instructors": ["Shakil sir"], "period": "4th Period", "room": "ECE-102" },
+                { "time": "11:30 AM – 12:20 PM", "code": "ECE 2103", "name": "Digital Electronics and Logic Circuits", "type": "Theory", "instructors": ["Foisal Sir", "Sharif sir"], "period": "5th Period", "room": "ECE-102" },
+                { "time": "12:20 PM – 01:10 PM", "code": "ECE 2105", "name": "Electromagnetic Fields and Waves", "type": "Theory", "instructors": ["Shonglap sir"], "period": "6th Period", "room": "ECE-102" },
+                { "time": "02:30 PM – 05:00 PM", "code": "ECE 2104", "name": "Digital Electronics and Logic Circuits Laboratory", "type": "Sessional", "instructors": ["Foisal Sir", "Sharif sir"], "group": "Group A/B", "period": "7th, 8th & 9th Period", "room": "ECE-102" }
             ],
             "Thu": [
-                { "time": "09:40 AM – 10:30 AM", "code": "ECE 2105", "name": "Network Analysis & Synthesis", "type": "Theory", "instructors": ["Masuk sir", "Shonglap sir"], "period": "3rd Period", "room": "ECE-102" },
-                { "time": "10:40 AM – 11:30 AM", "code": "ECE 2103", "name": "Digital Electronics", "type": "Theory", "instructors": ["Sharif sir"], "period": "4th Period", "room": "ECE-102" },
-                { "time": "11:30 AM – 12:20 PM", "code": "ECE 2101", "name": "Electronic Devices & Circuits I", "type": "Theory", "instructors": ["Shafrin mam"], "period": "5th Period", "room": "ECE-102" },
-                { "time": "02:30 PM – 04:10 PM", "code": "ECE 2102", "name": "Electronic Devices & Circuits I Sessional", "type": "Sessional", "instructors": ["Shafrin mam", "Ayesha mam"], "group": "Group A/B", "period": "7th & 8th Period", "notes": "Overlaps with ECE 2108 from 03:20 PM to 04:10 PM.", "room": "ECE-102" },
-                { "time": "03:20 PM – 05:00 PM", "code": "ECE 2108", "name": "Numerical Analysis & Statistics Sessional", "type": "Sessional", "instructors": ["Rahul sir", "Arnob sir"], "group": "Group A/B", "period": "8th & 9th Period", "notes": "Overlaps with ECE 2102 from 03:20 PM to 04:10 PM.", "room": "ECE-102" }
+                { "time": "09:40 AM – 10:30 AM", "code": "ECE 2105", "name": "Electromagnetic Fields and Waves", "type": "Theory", "instructors": ["Masuk sir", "Shonglap sir"], "period": "3rd Period", "room": "ECE-102" },
+                { "time": "10:40 AM – 11:30 AM", "code": "ECE 2103", "name": "Digital Electronics and Logic Circuits", "type": "Theory", "instructors": ["Sharif sir"], "period": "4th Period", "room": "ECE-102" },
+                { "time": "11:30 AM – 12:20 PM", "code": "ECE 2101", "name": "Analog Electronics-II", "type": "Theory", "instructors": ["Shafrin mam"], "period": "5th Period", "room": "ECE-102" },
+                { "time": "02:30 PM – 04:10 PM", "code": "ECE 2102", "name": "Analog Electronics-II Laboratory", "type": "Sessional", "instructors": ["Shafrin mam", "Ayesha mam"], "group": "Group A/B", "period": "7th & 8th Period", "notes": "Overlaps with ECE 2108 from 03:20 PM to 04:10 PM.", "room": "ECE-102" },
+                { "time": "03:20 PM – 05:00 PM", "code": "ECE 2108", "name": "Signal and Systems Laboratory", "type": "Sessional", "instructors": ["Rahul sir", "Arnob sir"], "group": "Group A/B", "period": "8th & 9th Period", "notes": "Overlaps with ECE 2102 from 03:20 PM to 04:10 PM.", "room": "ECE-102" }
             ]
         }
     },
