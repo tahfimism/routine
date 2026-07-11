@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ECE Class Routine</title>
+    <link rel="manifest" href="manifest.json">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -55,6 +56,13 @@
                 <button onclick="toggleViewMode('daily')" id="btn-view-daily" class="px-2.5 py-1.5 rounded-md transition text-cream-text dark:text-charcoal-text bg-white dark:bg-neutral-800 shadow-sm">Daily</button>
                 <button onclick="toggleViewMode('weekly')" id="btn-view-weekly" class="px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50">Weekly</button>
             </div>
+
+            <!-- Dynamic Push Alerts Toggle -->
+            <button onclick="toggleNotifications()" id="notification-btn" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Toggle Class Alerts">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+            </button>
 
             <!-- Subtle Theme Toggle -->
             <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Toggle Dark Mode">
