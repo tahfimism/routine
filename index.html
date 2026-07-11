@@ -46,8 +46,8 @@
     <!-- Header Frame -->
     <header class="max-w-3xl w-full mx-auto px-6 pt-12 pb-6 flex items-center justify-between">
         <div>
-            <h1 class="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">ECE 2-1 routine</h1>
-            <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5">Khulna University of Engineering & Technology</p>
+            <h1 id="routine-title" class="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">ECE 2-1 routine</h1>
+            <p id="routine-subtitle" class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5">Khulna University of Engineering & Technology</p>
         </div>
         
         <div class="flex items-center gap-3">
@@ -56,6 +56,14 @@
                 <button onclick="toggleViewMode('daily')" id="btn-view-daily" class="px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm">Daily</button>
                 <button onclick="toggleViewMode('weekly')" id="btn-view-weekly" class="px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-950 dark:hover:text-neutral-50">Weekly</button>
             </div>
+
+            <!-- Settings Switcher Toggle -->
+            <button onclick="openSettingsModal()" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Open Settings">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+            </button>
 
             <!-- Subtle Theme Toggle -->
             <button onclick="toggleDarkMode()" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Toggle Dark Mode">
@@ -187,8 +195,40 @@
         </div>
     </div>
 
+    <!-- Premium Settings Selector Modal -->
+    <div id="settings-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <!-- Backdrop Blur Overlay -->
+        <div onclick="closeSettingsModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>
+        
+        <!-- Modal Card Content -->
+        <div class="modal-content relative bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl w-full max-w-sm shadow-2xl p-6 overflow-hidden transform scale-95 opacity-0 transition-all duration-200">
+            <!-- Header with close button -->
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-base font-extrabold text-neutral-900 dark:text-neutral-100 leading-tight">
+                        Settings
+                    </h2>
+                    <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-1 font-medium">Select routine schedule</p>
+                </div>
+                <button onclick="closeSettingsModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Close settings modal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Options Panel -->
+            <div class="mt-6 space-y-3">
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted select-none">Active Routine</label>
+                <div id="routine-options-list" class="space-y-2">
+                    <!-- Options injected dynamically by app.js -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Core Data and Application Logic -->
-    <script src="js/data.js?v=2"></script>
-    <script src="js/app.js?v=2"></script>
+    <script src="js/data.js?v=3"></script>
+    <script src="js/app.js?v=3"></script>
 </body>
 </html>
