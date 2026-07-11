@@ -963,7 +963,7 @@ function showPwaBanner(platform) {
     if (!banner || !desc || !btn) return;
 
     if (platform === 'ios') {
-        desc.innerText = "Tap the Share icon, then scroll down and select 'Add to Home Screen' for offline access and alerts.";
+        desc.innerText = "Please open this page in Safari, tap the Share icon (at the bottom), and select 'Add to Home Screen' for offline access and alerts.";
         btn.classList.add('hidden'); // Programmatic triggers not supported on iOS Safari
     } else {
         btn.classList.remove('hidden');
