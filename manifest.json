@@ -12,14 +12,14 @@
       "type": "image/svg+xml"
     },
     {
-      "src": "logo_dark_bg.svg",
+      "src": "logo_dark_bg.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "logo_light_bg.svg",
+      "src": "logo_dark_bg.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }
