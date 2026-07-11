@@ -1,6 +1,6 @@
 const routines = {
     "ece_2_1": {
-        "id": "ece_2_1",
+        "id": "ece21",
         "name": "ECE 2-1 (KUET)",
         "subtitle": "Khulna University of Engineering & Technology",
         "teacherDirectory": {
@@ -53,7 +53,7 @@ const routines = {
         }
     },
     "cse_new": {
-        "id": "cse_new",
+        "id": "ll",
         "name": "DSA",
         "subtitle": "East West University (EWU)",
         "teacherDirectory": {},

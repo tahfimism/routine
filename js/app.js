@@ -8,12 +8,34 @@ let currentRoutine = null;
 
 // DOM Loaded Init
 window.addEventListener('DOMContentLoaded', () => {
-    // Select active routine
-    activeRoutineId = localStorage.getItem('active_routine_id') || 'ece_2_1';
-    if (!routines[activeRoutineId]) {
-        activeRoutineId = 'ece_2_1';
+    // Check if query parameter 'r' is present and matches a valid routine id
+    const urlParams = new URLSearchParams(window.location.search);
+    const rParam = urlParams.get('r');
+    
+    const routinesList = Object.values(routines);
+    const defaultRoutine = routinesList[0] || { id: 'ece21', data: {} };
+    
+    let targetRoutine = null;
+    if (rParam) {
+        targetRoutine = routinesList.find(r => r.id === rParam);
     }
-    currentRoutine = routines[activeRoutineId];
+    
+    if (targetRoutine) {
+        // Save to localStorage
+        localStorage.setItem('active_routine_id', targetRoutine.id);
+        activeRoutineId = targetRoutine.id;
+        currentRoutine = targetRoutine;
+        
+        // Clean URL to look professional
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+    } else {
+        // Fallback to localStorage or default
+        const savedId = localStorage.getItem('active_routine_id');
+        targetRoutine = routinesList.find(r => r.id === savedId) || defaultRoutine;
+        activeRoutineId = targetRoutine.id;
+        currentRoutine = targetRoutine;
+    }
     
     // Inject dynamic header titles
     updateHeaderTitles();
@@ -32,6 +54,26 @@ window.addEventListener('DOMContentLoaded', () => {
             closeSettingsModal();
         }
     });
+
+    // Setup secret settings modal access (triple click routine title)
+    let titleClickCount = 0;
+    let titleClickTimeout = null;
+    const titleEl = document.getElementById('routine-title');
+    if (titleEl) {
+        titleEl.classList.add('select-none', 'cursor-default');
+        titleEl.addEventListener('click', () => {
+            titleClickCount++;
+            if (titleClickTimeout) clearTimeout(titleClickTimeout);
+            titleClickTimeout = setTimeout(() => {
+                titleClickCount = 0;
+            }, 1000);
+            if (titleClickCount === 3) {
+                titleClickCount = 0;
+                clearTimeout(titleClickTimeout);
+                openSettingsModal();
+            }
+        });
+    }
 });
 
 // Update the main header title and subtitle dynamically
@@ -546,10 +588,12 @@ function closeSettingsModal() {
 }
 
 function selectRoutine(id) {
-    if (!routines[id]) return;
-    activeRoutineId = id;
-    localStorage.setItem('active_routine_id', id);
-    currentRoutine = routines[id];
+    const matched = Object.values(routines).find(r => r.id === id);
+    if (!matched) return;
+    
+    activeRoutineId = matched.id;
+    localStorage.setItem('active_routine_id', matched.id);
+    currentRoutine = matched;
     
     // Update Header titles
     updateHeaderTitles();
@@ -569,7 +613,6 @@ function selectRoutine(id) {
     // Close modal
     closeSettingsModal();
 }
-
 // Modal handling logic
 function openClassModal(dayKey, index) {
     if (!currentRoutine) return;
