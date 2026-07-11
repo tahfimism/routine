@@ -861,9 +861,6 @@ function checkUpcomingClassAlerts() {
     const currentDay = dayMap[now.getDay()];
     const currentMin = now.getHours() * 60 + now.getMinutes();
 
-    const academicDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
-    if (!academicDays.includes(currentDay)) return;
-
     const dayClasses = currentRoutine.data[currentDay] || [];
     const dateStr = now.toISOString().split('T')[0];
 
