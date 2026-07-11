@@ -37,8 +37,9 @@ window.addEventListener('DOMContentLoaded', () => {
         currentRoutine = targetRoutine;
     }
     
-    // Inject dynamic header titles
+    // Inject dynamic header titles & color palette
     updateHeaderTitles();
+    applyRoutinePalette(currentRoutine);
     
     setupInitialDay();
     setupTheme();
@@ -85,6 +86,25 @@ function updateHeaderTitles() {
     }
     if (subtitleEl && currentRoutine) {
         subtitleEl.innerText = currentRoutine.subtitle;
+    }
+}
+
+// Apply custom CSS variable overrides for light-mode if specified
+function applyRoutinePalette(routine) {
+    const root = document.documentElement;
+    if (routine && routine.palette) {
+        root.style.setProperty('--cream-bg', routine.palette.bg);
+        root.style.setProperty('--cream-card', routine.palette.card);
+        root.style.setProperty('--cream-border', routine.palette.border);
+        root.style.setProperty('--cream-text', routine.palette.text);
+        root.style.setProperty('--cream-muted', routine.palette.muted);
+    } else {
+        // Clear style overrides to revert to standard cream colors
+        root.style.removeProperty('--cream-bg');
+        root.style.removeProperty('--cream-card');
+        root.style.removeProperty('--cream-border');
+        root.style.removeProperty('--cream-text');
+        root.style.removeProperty('--cream-muted');
     }
 }
 
@@ -287,9 +307,9 @@ function renderDaySchedule(dayKey) {
     const tabButtons = document.querySelectorAll('.tab-btn');
     tabButtons.forEach(btn => {
         if (btn.id === `tab-${dayKey}`) {
-            btn.className = "tab-btn py-3 text-sm font-bold tracking-wide transition-all relative border-b-2 border-neutral-900 dark:border-neutral-100 text-neutral-900 dark:text-neutral-100 shrink-0";
+            btn.className = "tab-btn py-3 text-sm font-bold tracking-wide transition-all relative border-b-2 border-cream-text dark:border-charcoal-text text-cream-text dark:text-charcoal-text shrink-0";
         } else {
-            btn.className = "tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-neutral-900 dark:hover:text-neutral-100 shrink-0";
+            btn.className = "tab-btn py-3 text-sm font-semibold tracking-wide transition-all relative border-b-2 border-transparent text-cream-muted dark:text-charcoal-muted hover:text-cream-text dark:hover:text-charcoal-text shrink-0";
         }
     });
 
@@ -369,7 +389,7 @@ function renderDaySchedule(dayKey) {
                             </span>
                         </div>
                         <div>
-                            <h3 class="text-sm font-bold text-neutral-900 dark:text-neutral-100 leading-tight flex items-center gap-1.5">
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text leading-tight flex items-center gap-1.5">
                                 ${cls.code} &bull; ${cls.name}
                                 ${isLive ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live" title="Live ongoing class"></span>` : ''}
                             </h3>
@@ -469,7 +489,7 @@ function renderWeeklyGrid() {
                                 </div>
                                 ${isLive ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live"></span>` : ''}
                             </div>
-                            <h4 class="text-xs font-extrabold text-neutral-900 dark:text-neutral-100 tracking-tight leading-tight">
+                            <h4 class="text-xs font-extrabold text-cream-text dark:text-charcoal-text tracking-tight leading-tight">
                                 ${cls.code}
                             </h4>
                         </div>
@@ -491,7 +511,7 @@ function renderWeeklyGrid() {
             <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 ${rowClass} border-b border-cream-border/40 dark:border-charcoal-border/30 last:border-0">
                 <!-- Day Label Column -->
                 <div class="w-full md:w-32 shrink-0 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start select-none">
-                    <span class="font-extrabold text-sm text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                    <span class="font-extrabold text-sm text-cream-text dark:text-charcoal-text flex items-center gap-1.5">
                         ${dayFullNames[dayKey]}
                         ${isToday ? `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 pulse-live" title="Today"></span>` : ''}
                     </span>
@@ -522,7 +542,7 @@ function toggleViewMode(view) {
         
         // Update active class triggers on toggle controls
         btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50";
-        btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm";
+        btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-cream-text dark:text-charcoal-text bg-white dark:bg-neutral-800 shadow-sm";
         
         // Render the calendar grid
         renderWeeklyGrid();
@@ -531,7 +551,7 @@ function toggleViewMode(view) {
         dailySec.classList.remove('hidden');
         
         btnWeekly.className = "px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50";
-        btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm";
+        btnDaily.className = "px-2.5 py-1.5 rounded-md transition text-cream-text dark:text-charcoal-text bg-white dark:bg-neutral-800 shadow-sm";
         
         // Redraw list to calculate ongoing class stats
         renderDaySchedule(currentDayTab);
@@ -556,11 +576,11 @@ function openSettingsModal() {
         listContainer.innerHTML += `
             <div onclick="selectRoutine('${r.id}')" class="border ${borderTheme} rounded-xl p-3.5 cursor-pointer transition select-none flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-bold text-neutral-900 dark:text-neutral-100">${r.name}</p>
+                    <p class="text-sm font-bold text-cream-text dark:text-charcoal-text">${r.name}</p>
                     <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5 font-medium">${r.subtitle}</p>
                 </div>
                 ${isSelected ? `
-                    <svg class="w-4 h-4 text-neutral-900 dark:text-neutral-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 text-cream-text dark:text-charcoal-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
                     </svg>
                 ` : ''}
@@ -595,8 +615,9 @@ function selectRoutine(id) {
     localStorage.setItem('active_routine_id', matched.id);
     currentRoutine = matched;
     
-    // Update Header titles
+    // Update Header titles & palette
     updateHeaderTitles();
+    applyRoutinePalette(currentRoutine);
     
     // Re-initialize day selection and rendering
     setupInitialDay();
@@ -651,8 +672,8 @@ function openClassModal(dayKey, index) {
         cls.instructors.forEach(acronym => {
             const fullName = teacherDir[acronym] || acronym;
             instructorsList.innerHTML += `
-                <li class="flex items-center gap-2 text-neutral-700 dark:text-neutral-300 text-sm font-semibold">
-                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-neutral-400 dark:bg-neutral-600"></span>
+                <li class="flex items-center gap-2 text-cream-text dark:text-charcoal-text text-sm font-semibold">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-cream-muted dark:bg-charcoal-muted"></span>
                     <span>${fullName} (${acronym})</span>
                 </li>
             `;

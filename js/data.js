@@ -1,5 +1,5 @@
 const routines = {
-    "ece_2_1": {
+    "ece21": {
         "id": "ece21",
         "name": "ECE 2-1 (KUET)",
         "subtitle": "Khulna University of Engineering & Technology",
@@ -52,10 +52,17 @@ const routines = {
             ]
         }
     },
-    "cse_new": {
+    "ll": {
         "id": "ll",
         "name": "DSA",
         "subtitle": "East West University (EWU)",
+        "palette": {
+            "bg": "#EAE2F8",
+            "card": "#FFFFFF",
+            "border": "#D1C4E9",
+            "text": "#311B92",
+            "muted": "#673AB7"
+        },
         "teacherDirectory": {},
         "data": {
             "Sun": [

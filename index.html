@@ -16,11 +16,11 @@
                     },
                     colors: {
                         cream: {
-                            bg: '#FDFBF7',
-                            card: '#FFFFFF',
-                            border: '#E8E5DF',
-                            text: '#202020',
-                            muted: '#6E6A64'
+                            bg: 'var(--cream-bg, #FDFBF7)',
+                            card: 'var(--cream-card, #FFFFFF)',
+                            border: 'var(--cream-border, #E8E5DF)',
+                            text: 'var(--cream-text, #202020)',
+                            muted: 'var(--cream-muted, #6E6A64)'
                         },
                         charcoal: {
                             bg: '#121212',
@@ -43,17 +43,16 @@
 </head>
 <body class="bg-cream-bg dark:bg-charcoal-bg text-cream-text dark:text-charcoal-text transition-colors duration-250 min-h-full flex flex-col justify-between selection:bg-neutral-200 dark:selection:bg-neutral-800">
 
-    <!-- Header Frame -->
     <header class="max-w-3xl w-full mx-auto px-6 pt-12 pb-6 flex items-center justify-between">
         <div>
-            <h1 id="routine-title" class="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-100">ECE 2-1 routine</h1>
+            <h1 id="routine-title" class="text-xl font-bold tracking-tight text-cream-text dark:text-charcoal-text">ECE 2-1 routine</h1>
             <p id="routine-subtitle" class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5">Khulna University of Engineering & Technology</p>
         </div>
         
         <div class="flex items-center gap-3">
             <!-- View Mode Switch -->
             <div class="flex items-center rounded-lg bg-neutral-100 dark:bg-neutral-900/50 p-1 border border-cream-border dark:border-charcoal-border text-xs font-semibold select-none">
-                <button onclick="toggleViewMode('daily')" id="btn-view-daily" class="px-2.5 py-1.5 rounded-md transition text-neutral-900 dark:text-neutral-100 bg-white dark:bg-neutral-800 shadow-sm">Daily</button>
+                <button onclick="toggleViewMode('daily')" id="btn-view-daily" class="px-2.5 py-1.5 rounded-md transition text-cream-text dark:text-charcoal-text bg-white dark:bg-neutral-800 shadow-sm">Daily</button>
                 <button onclick="toggleViewMode('weekly')" id="btn-view-weekly" class="px-2.5 py-1.5 rounded-md transition text-cream-muted dark:text-charcoal-muted hover:text-neutral-955 dark:hover:text-neutral-50">Weekly</button>
             </div>
 
@@ -131,7 +130,7 @@
                     <span id="modal-class-type" class="inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/40 mb-2">
                         Theory
                     </span>
-                    <h2 id="modal-class-code-name" class="text-base font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+                    <h2 id="modal-class-code-name" class="text-base font-bold text-cream-text dark:text-charcoal-text leading-tight">
                         ECE 2101 &bull; Electronic Devices & Circuits I
                     </h2>
                 </div>
@@ -153,7 +152,7 @@
                     </div>
                     <div>
                         <p class="text-xs text-cream-muted dark:text-charcoal-muted font-medium">Time & Period</p>
-                        <p id="modal-class-time-period" class="font-semibold text-neutral-800 dark:text-neutral-200">08:50 AM – 09:40 AM (2nd Period)</p>
+                        <p id="modal-class-time-period" class="font-semibold text-cream-text dark:text-charcoal-text">08:50 AM – 09:40 AM (2nd Period)</p>
                     </div>
                 </div>
 
@@ -166,7 +165,7 @@
                     </div>
                     <div>
                         <p class="text-xs text-cream-muted dark:text-charcoal-muted font-medium">Location & Demographic</p>
-                        <p id="modal-class-location" class="font-semibold text-neutral-800 dark:text-neutral-200">ECE-102 &bull; All Students</p>
+                        <p id="modal-class-location" class="font-semibold text-cream-text dark:text-charcoal-text">ECE-102 &bull; All Students</p>
                     </div>
                 </div>
 
@@ -196,7 +195,7 @@
             <!-- Header with close button -->
             <div class="flex items-start justify-between gap-4">
                 <div>
-                    <h2 class="text-base font-extrabold text-neutral-900 dark:text-neutral-100 leading-tight">
+                    <h2 class="text-base font-extrabold text-cream-text dark:text-charcoal-text leading-tight">
                         Settings
                     </h2>
                     <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-1 font-medium">Select routine schedule</p>
