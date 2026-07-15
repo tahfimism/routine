@@ -266,6 +266,20 @@
                     <!-- Options injected dynamically by app.js -->
                 </div>
             </div>
+
+            <!-- Calendar Export Panel -->
+            <div class="mt-6 pt-6 border-t border-cream-border dark:border-charcoal-border space-y-3">
+                <label class="block text-[10px] font-extrabold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted select-none">Calendar Sync (Offline / Mobile)</label>
+                <p class="text-[11px] text-cream-muted dark:text-charcoal-muted leading-relaxed font-medium">
+                    Because mobile browsers throttle background tasks, PWA alerts may not fire when the screen is locked. Export your routine to your native device calendar for 100% reliable offline alerts.
+                </p>
+                <button onclick="exportToCalendar()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Export to Device Calendar
+                </button>
+            </div>
         </div>
     </div>
 

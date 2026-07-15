@@ -437,7 +437,40 @@ function renderDaySchedule(dayKey) {
     const currentSystemDay = dayMap[now.getDay()];
     const currentMin = now.getHours() * 60 + now.getMinutes();
 
+    let lastEndMin = null;
+
     dayClasses.forEach((cls, index) => {
+        const range = parseRange(cls.time);
+
+        // Render break if there is a gap between this class and the previous one
+        if (lastEndMin !== null && range) {
+            const gapMin = range.startMin - lastEndMin;
+            if (gapMin > 0) {
+                let breakText = '';
+                if (gapMin >= 60) {
+                    const hrs = Math.floor(gapMin / 60);
+                    const mins = gapMin % 60;
+                    breakText = `${hrs}h ${mins > 0 ? mins + 'm' : ''} Break`;
+                } else {
+                    breakText = `${gapMin}m Break`;
+                }
+
+                timeline.innerHTML += `
+                    <div class="flex items-center my-3 select-none py-1 animate-fade-in">
+                        <div class="flex-grow border-t border-dashed border-cream-border/60 dark:border-charcoal-border/50"></div>
+                        <span class="px-3 text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-cream-bg dark:bg-charcoal-bg transition-all">
+                            ☕ ${breakText}
+                        </span>
+                        <div class="flex-grow border-t border-dashed border-cream-border/60 dark:border-charcoal-border/50"></div>
+                    </div>
+                `;
+            }
+        }
+
+        if (range) {
+            lastEndMin = range.endMin;
+        }
+
         const isSessional = cls.type === 'Sessional';
         let pillTheme = isSessional 
             ? 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30' 
@@ -450,7 +483,6 @@ function renderDaySchedule(dayKey) {
         let progressPercent = 0;
 
         if (dayKey === currentSystemDay) {
-            const range = parseRange(cls.time);
             if (range && currentMin >= range.startMin && currentMin < range.endMin) {
                 isLive = true;
                 elapsedMins = currentMin - range.startMin;
@@ -1036,4 +1068,145 @@ function dismissPwaBanner() {
     }, 300);
     
     sessionStorage.setItem('pwa_banner_dismissed', 'true');
+}
+
+// Generate client-side offline-compatible .ics calendar file containing recurring classes and alarms
+function exportToCalendar() {
+    if (!currentRoutine) {
+        alert("No routine selected to export.");
+        return;
+    }
+
+    let icsContent = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Nakib//Routine PWA//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH"
+    ];
+
+    const dayMapToIcs = {
+        "Sun": "SU",
+        "Mon": "MO",
+        "Tue": "TU",
+        "Wed": "WE",
+        "Thu": "TH",
+        "Fri": "FR",
+        "Sat": "SA"
+    };
+
+    const dayOffsets = {
+        "Sun": 0,
+        "Mon": 1,
+        "Tue": 2,
+        "Wed": 3,
+        "Thu": 4,
+        "Fri": 5,
+        "Sat": 6
+    };
+
+    // Calculate dates based on the current week. Let's find the Sunday of the current week.
+    const today = new Date();
+    const currentDayIdx = today.getDay(); // 0 is Sunday, 1 is Monday...
+    const baseSunday = new Date(today);
+    baseSunday.setDate(today.getDate() - currentDayIdx);
+
+    // Format helper to convert date, hours and minutes to iCalendar YYYYMMDDTHHMMSS format
+    function formatDateString(date, hours, minutes) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        const hh = String(hours).padStart(2, '0');
+        const min = String(minutes).padStart(2, '0');
+        return `${yyyy}${mm}${dd}T${hh}${min}00`;
+    }
+
+    const uidBase = `routine-${currentRoutine.id}-${Date.now()}`;
+
+    for (const day in currentRoutine.data) {
+        const classes = currentRoutine.data[day];
+        if (!classes || classes.length === 0) continue;
+
+        const byday = dayMapToIcs[day];
+        if (!byday) continue;
+
+        // Calculate target date for this weekday in the current week
+        const targetDate = new Date(baseSunday);
+        targetDate.setDate(baseSunday.getDate() + dayOffsets[day]);
+
+        classes.forEach((cls, index) => {
+            const range = parseRange(cls.time);
+            if (!range) return;
+
+            // Extract start & end hours and minutes
+            const startHour = Math.floor(range.startMin / 60);
+            const startMin = range.startMin % 60;
+            const endHour = Math.floor(range.endMin / 60);
+            const endMin = range.endMin % 60;
+
+            const dtstart = formatDateString(targetDate, startHour, startMin);
+            const dtend = formatDateString(targetDate, endHour, endMin);
+            // DTSTAMP must be in UTC or local, let's make it match local execution time
+            const dtstamp = formatDateString(today, today.getHours(), today.getMinutes());
+
+            const summary = `${cls.code} - ${cls.name || ''}`.trim();
+            const location = cls.room || '';
+            const instructors = cls.instructors && cls.instructors.length > 0 
+                ? cls.instructors.join(', ') 
+                : 'None';
+            const period = cls.period || '';
+            const type = cls.type || '';
+            const group = cls.group || '';
+            
+            let description = `Type: ${type}\\nPeriod: ${period}\\nInstructors: ${instructors}`;
+            if (group) {
+                description += `\\nGroup: ${group}`;
+            }
+            if (cls.notes) {
+                description += `\\nNotes: ${cls.notes}`;
+            }
+
+            icsContent.push("BEGIN:VEVENT");
+            icsContent.push(`UID:${uidBase}-${day}-${index}@routine.pwa`);
+            icsContent.push(`DTSTAMP:${dtstamp}`);
+            icsContent.push(`DTSTART:${dtstart}`);
+            icsContent.push(`DTEND:${dtend}`);
+            icsContent.push(`RRULE:FREQ=WEEKLY;BYDAY=${byday}`);
+            icsContent.push(`SUMMARY:${summary}`);
+            icsContent.push(`DESCRIPTION:${description}`);
+            if (location) {
+                icsContent.push(`LOCATION:${location}`);
+            }
+            
+            // VALARM (Alarm 10 minutes before class start)
+            icsContent.push("BEGIN:VALARM");
+            icsContent.push("TRIGGER:-PT10M");
+            icsContent.push("ACTION:DISPLAY");
+            icsContent.push("DESCRIPTION:Upcoming Class Reminder");
+            icsContent.push("END:VALARM");
+
+            // VALARM (Alarm exactly at class start)
+            icsContent.push("BEGIN:VALARM");
+            icsContent.push("TRIGGER:PT0M");
+            icsContent.push("ACTION:DISPLAY");
+            icsContent.push("DESCRIPTION:Class starting now!");
+            icsContent.push("END:VALARM");
+
+            icsContent.push("END:VEVENT");
+        });
+    }
+
+    icsContent.push("END:VCALENDAR");
+
+    const icsString = icsContent.join("\r\n");
+    const blob = new Blob([icsString], { type: "text/calendar;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${currentRoutine.id}_schedule.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Provide user instructions
+    alert("Calendar file (.ics) generated successfully!\n\nOpen the downloaded file to import your classes and activate 100% reliable background alerts.");
 }
