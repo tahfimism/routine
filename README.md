@@ -1,4 +1,4 @@
-# Product Requirement Document (PRD) & Project Overview: Class Routine Dashboard
+# Product Requirement Document (PRD) & Project Specs: Class Routine Dashboard
 
 A lightweight, offline-first, mobile-friendly Progressive Web App (PWA) designed to help university students track their daily schedules, manage transitions between classes, and receive timely alerts.
 
@@ -59,24 +59,49 @@ It is designed to feel like a premium utility app: minimal clutter, highly optim
 - **Acronym Resolution**: Resolves teacher initials (e.g. "AMB") to their full names using the routine's registry mapping.
 
 ### 2.7 Progressive Web App (PWA) & Offline Access
-- **Service Worker (`sw.js`)**: Registers on page load, caching core assets (`index.html`, `style.css`, `data.js`, `app.js`, `manifest.json`).
+- **Service Worker (`sw.js`)**: Registers on page load, caching core assets (`index.html`, `style.css`, `data.js`, `app.js`, `manifest.json`, and logo files).
 - **Network-First Caching Strategy**: Uses a **Network-First falling back to Cache** strategy. When online, the app fetches fresh files from the network and updates the cache. When offline, it falls back to cache instantly. This guarantees students always see dynamic schedule edits immediately when online and retains offline loading.
 - **PWA Manifest (`manifest.json`)**: Configures standard display properties, background colors, and start URLs to make the website fully installable as a native app.
 - **Platform-Aware Install Prompts**:
-  - *Android Chrome / Desktop*: Intercepts default browser prompts and displays a custom slide-up install promotion banner featuring a calendar SVG logo. Clicking "Install" fires the native browser trigger.
+  - *Android Chrome / Desktop*: Intercepts default browser prompts and displays a custom slide-up install promotion banner. Clicking "Install" fires the native browser trigger.
   - *iOS Safari*: Safari blocks programmatic prompts. The app displays manual instructions showing users how to tap Safari's Share sheet and select "Add to Home Screen".
   - *Session Dismissal*: Clicking "Dismiss" hides the banner and saves the state to `sessionStorage` to avoid prompting again in the same tab session.
+- **Footer Installation Button**: In addition to the popups, a subtle "Install App" button is visible in the footer. Clicking it triggers the native install popup on Android, and launches the Safari help banner on iOS. It automatically hides when opened inside the installed standalone PWA.
 
 ### 2.8 Service Worker Push Notifications
-- **Mobile Background Support**: Dispatches alarms using the Service Worker registration context (`registration.showNotification()`) for background compatibility.
-- **Timers**:
-  - *10-Minute Warning*: Pushes an alert exactly 10 minutes before a class starts, showing class names and classroom locations.
-  - *Start Warning*: Pushes an alert exactly when class starts.
-- **UI Toggle**: A bell toggle icon button is available in the header. Permitting alerts highlights the icon in emerald green. Saves preferences to `localStorage`.
+- **Trigger Times**:
+  - **10 Minutes Before Start**: Alerts the student with course code, name, start time, and room number so they have enough time to walk to the classroom.
+  - **Exactly at Start Time**: Alerts the student that class is beginning now.
+- **Mobile Background Support**: Dispatches alarms using the Service Worker registration context (`registration.showNotification()`) so that alerts trigger even when Safari/Chrome is closed or the phone screen is locked.
+- **Duplicate Prevention**: Every alert creates a unique tracking key (e.g. `[Date]_[CourseCode]_10m` or `[Date]_[CourseCode]_start`) stored in a runtime registry, ensuring each warning triggers exactly once per day.
+- **UI Toggle Control**: A notification toggle bell button is located in the header. Activating alerts requests permissions and highlights the bell in emerald green.
+
+### 2.9 Tiny Features & Micro-UX Details
+- **Next-Day Auto-Focus (After 5:00 PM)**:
+  - If a student opens the routine after **5:00 PM (17:00)**, the dashboard automatically shifts the default active tab highlight to **tomorrow's schedule**. 
+  - If tomorrow is a weekend (Friday or Saturday), the dashboard defaults to Sunday's routine. 
+  - This ensures that in the evening, students immediately see what classes they have the next morning.
+- **Fade-In Tab Animations**:
+  - Toggling daily tabs or view modes triggers a smooth CSS fade-in animation, utilizing a browser reflow trick to restart the transition dynamically on every click.
+- **Escape Key Dismissal**:
+  - Pressing the `Escape` key on a keyboard instantly dismisses any active detail or settings modals.
 
 ---
 
-## 3. UI/UX Specifications & Styling Guidelines
+## 3. Brand Logo Assets
+The dashboard supports dynamic contrast icons:
+- **Favicon**: Uses `logo_no_bg.svg` (transparent background icon) to sit cleanly inside browser tabs.
+- **PWA Sizing Launchers**: Employs `logo_dark_bg.png` (high-quality PNG format, required by iOS Safari for home screen icons) and standard vector versions.
+- **UI Branding**:
+  - *Light Mode*: Displays `logo_dark_bg.svg` next to the header title and inside the install banner.
+  - *Dark Mode*: Displays `logo_light_bg.svg` next to the header title and banner.
+
+---
+
+## 4. UI/UX Specifications & Styling Guidelines
 - **Responsive Layout**: Designed for a maximum width of `max-w-3xl` (desktop), scaling down with margin-safe gutters for mobile devices.
+- **Header Structure (Mobile-First)**:
+  - *On Mobile (Phone)*: The App Logo and control toggles align horizontally on Row 1, and the active routine title block sits directly below it on Row 2 to ensure single-hand ergonomics.
+  - *On Desktop*: Automatically shifts back to a single row (Title and Logo on the left, controls on the right).
 - **Transitions**: CSS transitions are defined globally on background, colors, and layout shifts (250ms duration) to smooth switching between dark mode, routines, and views.
 - **Typographic System**: Utilizes the premium Google Font `Inter` with varying font weights (`font-light` to `font-extrabold`) for clear content hierarchy.
