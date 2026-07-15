@@ -9,6 +9,28 @@ let currentRoutine = null;
 // Notification Alert States
 let notificationsEnabled = localStorage.getItem('notifications_enabled') === 'true';
 let sentNotifications = {};
+try {
+    const saved = localStorage.getItem('sent_notifications');
+    if (saved) {
+        sentNotifications = JSON.parse(saved);
+
+        // Clean up old notifications from previous days
+        const today = new Date();
+        const dateStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`;
+        let cleaned = false;
+        for (const key in sentNotifications) {
+            if (!key.startsWith(dateStr)) {
+                delete sentNotifications[key];
+                cleaned = true;
+            }
+        }
+        if (cleaned) {
+            localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
+        }
+    }
+} catch (e) {
+    console.error("Error parsing sentNotifications", e);
+}
 
 // PWA Install Prompt State
 let deferredPrompt = null;
@@ -267,11 +289,15 @@ function updateRealTimeStatus() {
 
     // 1. Weekend / Off-Hours Greeting Banner State
     if (!isAcademic) {
+        let firstSunTime = '08:50 AM';
+        if (currentRoutine.data["Sun"]?.[0]) {
+            firstSunTime = currentRoutine.data["Sun"][0].time.split(/[-–—]/)[0].trim();
+        }
         banner.innerHTML = `
             <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
-            <span>Enjoy your weekend! Sunday classes start at ${currentRoutine.data["Sun"]?.[0]?.time.split(' – ')[0] || '08:50 AM'}.</span>
+            <span>Enjoy your weekend! Sunday classes start at ${firstSunTime}.</span>
         `;
         banner.classList.remove('hidden');
         return;
@@ -384,7 +410,7 @@ function renderDaySchedule(dayKey) {
     const dayInfo = document.getElementById('day-info');
     if (dayInfo) {
         if (dayClasses.length > 0) {
-            const firstTime = dayClasses[0].time.split(' – ')[0];
+            const firstTime = dayClasses[0].time.split(/[-–—]/)[0].trim();
             dayInfo.innerHTML = `
                 <svg class="w-3.5 h-3.5 text-cream-muted dark:text-charcoal-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -890,14 +916,18 @@ function showNotification(title, options) {
     if (!notificationsEnabled || Notification.permission !== "granted") return;
 
     const defaultOptions = {
-        icon: 'favicon.ico',
-        badge: 'favicon.ico',
+        icon: 'logo_dark_bg.png',
+        badge: 'logo_dark_bg.png',
         ...options
     };
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification(title, defaultOptions);
+            try {
+                registration.showNotification(title, defaultOptions);
+            } catch (e) {
+                new Notification(title, defaultOptions);
+            }
         }).catch(() => {
             new Notification(title, defaultOptions);
         });
@@ -916,7 +946,7 @@ function checkUpcomingClassAlerts() {
     const currentMin = now.getHours() * 60 + now.getMinutes();
 
     const dayClasses = currentRoutine.data[currentDay] || [];
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 
     dayClasses.forEach(cls => {
         const range = parseRange(cls.time);
@@ -925,12 +955,13 @@ function checkUpcomingClassAlerts() {
         const minutesDiff = range.startMin - currentMin;
         const roomStr = cls.room || 'ECE-102';
 
-        // 1. Alert 10 minutes before class start
-        if (minutesDiff === 10) {
+        // 1. Alert 10 minutes before class start (handle throttling by checking <= 10 and > 0)
+        if (minutesDiff <= 10 && minutesDiff > 0) {
             const alertKey = `${dateStr}_${cls.code}_10m`;
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
-                showNotification(`Class starts in 10 minutes!`, {
+                localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
+                showNotification(`Class starts in ${minutesDiff} minute${minutesDiff > 1 ? 's' : ''}!`, {
                     body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
                     tag: `class-10m-${cls.code}`,
                     requireInteraction: true
@@ -938,11 +969,12 @@ function checkUpcomingClassAlerts() {
             }
         }
 
-        // 2. Alert exactly at class start
-        if (minutesDiff === 0) {
+        // 2. Alert exactly at class start (or slightly after if throttled but up to 5 min late)
+        if (minutesDiff <= 0 && minutesDiff > -5) {
             const alertKey = `${dateStr}_${cls.code}_start`;
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
+                localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
                 showNotification(`Class starting now!`, {
                     body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
                     tag: `class-start-${cls.code}`,
