@@ -1,0 +1,3 @@
+## 2024-07-15 - Making interactive divs keyboard accessible
+**Learning:** In this application, schedule cards and setting options were built using `div` elements with `onclick` handlers, making them completely inaccessible to keyboard and screen reader users. Simply adding an `onclick` to a non-interactive element is an accessibility anti-pattern.
+**Action:** When making custom interactive elements using `div` or `span`, always add `role="button"`, `tabindex="0"`, a keyboard event handler (`onkeydown` for Enter and Space keys), and clear focus indicator styles (e.g., `focus-visible:ring-2 focus-visible:outline-none`) to ensure parity with native `<button>` elements.
