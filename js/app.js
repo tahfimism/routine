@@ -357,7 +357,7 @@ function updateRealTimeStatus() {
 
     // 3. Upcoming Class Countdown Banner State
     if (nextClass) {
-        const firstTimeStr = nextClass.data.time.split(' – ')[0];
+        const firstTimeStr = nextClass.data.time.split(/[-–—]/)[0].trim();
         if (nextClass.minUntil <= 60) {
             banner.innerHTML = `
                 <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -535,7 +535,7 @@ function renderWeeklyGrid() {
         const dayClasses = currentRoutine.data[dayKey] || [];
         let startsAtText = "No classes";
         if (dayClasses.length > 0) {
-            startsAtText = `Starts at: ${dayClasses[0].time.split(' – ')[0]}`;
+            startsAtText = `Starts at: ${dayClasses[0].time.split(/[-–—]/)[0].trim()}`;
         }
 
         const isToday = dayKey === currentSystemDay;
@@ -581,7 +581,7 @@ function renderWeeklyGrid() {
                             </h4>
                         </div>
                         <div class="mt-2.5 pt-1.5 border-t border-cream-border/60 dark:border-charcoal-border/50 flex flex-col gap-0.5 text-[9px] font-semibold text-cream-muted dark:text-charcoal-muted">
-                            <span class="font-medium">${cls.time.split(' – ')[0]}</span>
+                            <span class="font-medium">${cls.time.split(/[-–—]/)[0].trim()}</span>
                             <span class="text-neutral-400 dark:text-neutral-500 font-bold truncate">${cls.instructors && cls.instructors.length > 0 ? cls.instructors.join(' &bull; ') : 'N/A'}</span>
                         </div>
                     </div>
