@@ -1,4 +1,4 @@
-const CACHE_NAME = 'routine-cache-v9';
+const CACHE_NAME = 'routine-cache-v10';
 const ASSETS = [
     './',
     './index.html',
@@ -9,7 +9,8 @@ const ASSETS = [
     './logo_no_bg.svg',
     './logo_dark_bg.svg',
     './logo_light_bg.svg',
-    './logo_dark_bg.png'
+    './logo_dark_bg.png',
+    './badge_monochrome.svg'
 ];
 
 // Install Event - cache assets

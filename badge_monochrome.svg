@@ -1,0 +1,12 @@
+<svg width="160" height="128" viewBox="0 0 40 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Android Notification Badge (Monochrome) -->
+  <!-- Outline of the card -->
+  <rect x="2" y="2" width="36" height="28" rx="7" fill="transparent" stroke="#FFFFFF" stroke-width="2"/>
+
+  <!-- Active accent bar -->
+  <rect x="2" y="4" width="5" height="24" rx="2.5" fill="#FFFFFF"/>
+
+  <!-- Text lines: course code + time -->
+  <line x1="13" y1="12" x2="31" y2="12" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round"/>
+  <line x1="13" y1="20" x2="25" y2="20" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"/>
+</svg>
