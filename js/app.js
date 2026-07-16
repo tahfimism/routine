@@ -956,7 +956,7 @@ function showNotification(title, options) {
 
     const defaultOptions = {
         icon: 'logo_dark_bg.png',
-        badge: 'logo_dark_bg.png',
+        badge: 'badge_monochrome.svg',
         ...options
     };
 
@@ -1021,7 +1021,7 @@ function checkUpcomingClassAlerts() {
                         registration.showNotification(`Class starts in 10 minutes!`, {
                             body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
                             icon: 'logo_dark_bg.png',
-                            badge: 'logo_dark_bg.png',
+                            badge: 'badge_monochrome.svg',
                             tag: `class-10m-${cls.code}`,
                             requireInteraction: true,
                             showTrigger: new TimestampTrigger(notifyTime10m)
@@ -1030,7 +1030,7 @@ function checkUpcomingClassAlerts() {
                         registration.showNotification(`Class starting now!`, {
                             body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
                             icon: 'logo_dark_bg.png',
-                            badge: 'logo_dark_bg.png',
+                            badge: 'badge_monochrome.svg',
                             tag: `class-start-${cls.code}`,
                             requireInteraction: true,
                             showTrigger: new TimestampTrigger(notifyTimeStart)
