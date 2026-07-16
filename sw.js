@@ -36,6 +36,25 @@ self.addEventListener('activate', (e) => {
     );
 });
 
+// Notification Click Event - Open or focus the app
+self.addEventListener('notificationclick', (e) => {
+    e.notification.close();
+    e.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+            // If the app is already open, focus it
+            for (const client of clientList) {
+                if (client.url.includes(self.registration.scope) && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // Otherwise, open a new window
+            if (clients.openWindow) {
+                return clients.openWindow('./');
+            }
+        })
+    );
+});
+
 // Fetch Event - Network first falling back to cache
 self.addEventListener('fetch', (e) => {
     e.respondWith(

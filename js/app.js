@@ -79,6 +79,13 @@ window.addEventListener('DOMContentLoaded', () => {
     // Start the Routine Intelligence real-time updater
     startRealTimeTracker();
     
+    // Handle tab visibility change to instantly update states
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            updateRealTimeStatus();
+        }
+    });
+
     // Add global escape key listener to close modals
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -968,7 +975,17 @@ function showNotification(title, options) {
     }
 }
 
-// Alarm logic checks class intervals and alerts
+// Helper to calculate exact Date object for a specific time today
+function getDateForTimeToday(minutes) {
+    const d = new Date();
+    d.setHours(Math.floor(minutes / 60));
+    d.setMinutes(minutes % 60);
+    d.setSeconds(0);
+    d.setMilliseconds(0);
+    return d;
+}
+
+// Alarm logic checks class intervals and alerts, plus schedules background notifications
 function checkUpcomingClassAlerts() {
     if (!notificationsEnabled || Notification.permission !== "granted" || !currentRoutine) return;
 
@@ -980,6 +997,8 @@ function checkUpcomingClassAlerts() {
     const dayClasses = currentRoutine.data[currentDay] || [];
     const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 
+    const triggerSupported = ('serviceWorker' in navigator) && ('showTrigger' in Notification.prototype);
+
     dayClasses.forEach(cls => {
         const range = parseRange(cls.time);
         if (!range) return;
@@ -987,31 +1006,80 @@ function checkUpcomingClassAlerts() {
         const minutesDiff = range.startMin - currentMin;
         const roomStr = cls.room || 'ECE-102';
 
+        // Schedule background notifications for future classes if Triggers API is supported
+        if (triggerSupported && minutesDiff > 10) {
+            const scheduledKey = `${dateStr}_${cls.code}_scheduled`;
+            if (!sentNotifications[scheduledKey]) {
+                sentNotifications[scheduledKey] = true;
+                localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
+
+                navigator.serviceWorker.ready.then((registration) => {
+                    const notifyTime10m = getDateForTimeToday(range.startMin - 10).getTime();
+                    const notifyTimeStart = getDateForTimeToday(range.startMin).getTime();
+
+                    try {
+                        registration.showNotification(`Class starts in 10 minutes!`, {
+                            body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
+                            icon: 'logo_dark_bg.png',
+                            badge: 'logo_dark_bg.png',
+                            tag: `class-10m-${cls.code}`,
+                            requireInteraction: true,
+                            showTrigger: new TimestampTrigger(notifyTime10m)
+                        });
+
+                        registration.showNotification(`Class starting now!`, {
+                            body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
+                            icon: 'logo_dark_bg.png',
+                            badge: 'logo_dark_bg.png',
+                            tag: `class-start-${cls.code}`,
+                            requireInteraction: true,
+                            showTrigger: new TimestampTrigger(notifyTimeStart)
+                        });
+                    } catch (e) {
+                        console.warn("Failed to schedule trigger notification:", e);
+                    }
+                });
+            }
+        }
+
         // 1. Alert 10 minutes before class start (handle throttling by checking <= 10 and > 0)
+        // Only run real-time checks if Triggers API is NOT supported, or to catch immediate missed triggers
         if (minutesDiff <= 10 && minutesDiff > 0) {
             const alertKey = `${dateStr}_${cls.code}_10m`;
+            const scheduledKey = `${dateStr}_${cls.code}_scheduled`;
+
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
                 localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
-                showNotification(`Class starts in ${minutesDiff} minute${minutesDiff > 1 ? 's' : ''}!`, {
-                    body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
-                    tag: `class-10m-${cls.code}`,
-                    requireInteraction: true
-                });
+
+                // Show fallback if triggers not supported OR if it was never scheduled
+                if (!triggerSupported || !sentNotifications[scheduledKey]) {
+                    showNotification(`Class starts in ${minutesDiff} minute${minutesDiff > 1 ? 's' : ''}!`, {
+                        body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
+                        tag: `class-10m-${cls.code}`,
+                        requireInteraction: true
+                    });
+                }
             }
         }
 
         // 2. Alert exactly at class start (or slightly after if throttled but up to 5 min late)
         if (minutesDiff <= 0 && minutesDiff > -5) {
             const alertKey = `${dateStr}_${cls.code}_start`;
+            const scheduledKey = `${dateStr}_${cls.code}_scheduled`;
+
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
                 localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
-                showNotification(`Class starting now!`, {
-                    body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
-                    tag: `class-start-${cls.code}`,
-                    requireInteraction: true
-                });
+
+                // Show fallback if triggers not supported OR if it was never scheduled
+                if (!triggerSupported || !sentNotifications[scheduledKey]) {
+                    showNotification(`Class starting now!`, {
+                        body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
+                        tag: `class-start-${cls.code}`,
+                        requireInteraction: true
+                    });
+                }
             }
         }
     });
