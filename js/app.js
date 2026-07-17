@@ -35,6 +35,80 @@ try {
 // PWA Install Prompt State
 let deferredPrompt = null;
 
+// Attendance Data State
+// Format: { "routineId": { "courseCode": { "YYYY-MM-DD": "present" | "absent" } } }
+let attendanceData = {};
+try {
+    const savedAttendance = localStorage.getItem('attendance_data_v1');
+    if (savedAttendance) {
+        attendanceData = JSON.parse(savedAttendance);
+    }
+} catch (e) {
+    console.error("Error parsing attendanceData", e);
+}
+
+function saveAttendanceData() {
+    localStorage.setItem('attendance_data_v1', JSON.stringify(attendanceData));
+}
+
+// Helper to get a date string for a given day in the current week (Sun-Thu)
+function getDateForDayTab(dayKey) {
+    const today = new Date();
+    const currentDayIdx = today.getDay(); // 0 is Sunday, 1 is Monday...
+    const baseSunday = new Date(today);
+    baseSunday.setDate(today.getDate() - currentDayIdx);
+
+    const dayOffsets = { "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, "Thu": 4, "Fri": 5, "Sat": 6 };
+    const targetDate = new Date(baseSunday);
+    targetDate.setDate(baseSunday.getDate() + (dayOffsets[dayKey] || 0));
+
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDate.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+// Calculate attendance stats for a specific course in the current routine
+function getCourseAttendanceStats(courseCode) {
+    if (!activeRoutineId) return { present: 0, absent: 0, total: 0, percentage: 0 };
+
+    const routineAttendance = attendanceData[activeRoutineId] || {};
+    const courseAttendance = routineAttendance[courseCode] || {};
+
+    let present = 0;
+    let absent = 0;
+
+    Object.values(courseAttendance).forEach(status => {
+        if (status === 'present') present++;
+        if (status === 'absent') absent++;
+    });
+
+    const total = present + absent;
+    const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+    return { present, absent, total, percentage };
+}
+
+// Mark attendance for a course on a specific date
+function markAttendance(courseCode, dateStr, status) {
+    if (!activeRoutineId) return;
+
+    if (!attendanceData[activeRoutineId]) {
+        attendanceData[activeRoutineId] = {};
+    }
+    if (!attendanceData[activeRoutineId][courseCode]) {
+        attendanceData[activeRoutineId][courseCode] = {};
+    }
+
+    if (status === null || status === undefined) {
+        delete attendanceData[activeRoutineId][courseCode][dateStr];
+    } else {
+        attendanceData[activeRoutineId][courseCode][dateStr] = status;
+    }
+
+    saveAttendanceData();
+}
+
 // DOM Loaded Init
 window.addEventListener('DOMContentLoaded', () => {
     // Check if query parameter 'r' is present and matches a valid routine id
@@ -91,6 +165,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
             closeModal();
             closeSettingsModal();
+            closeStatsModal();
         }
     });
 
@@ -743,6 +818,83 @@ function closeSettingsModal() {
     }, 250);
 }
 
+// Attendance Stats Modal Handlers
+function openStatsModal() {
+    if (!currentRoutine) return;
+
+    const listContainer = document.getElementById('stats-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    // Extract unique courses from the routine
+    const uniqueCourses = new Set();
+    Object.values(currentRoutine.data).forEach(dayClasses => {
+        dayClasses.forEach(cls => {
+            uniqueCourses.add(cls.code);
+        });
+    });
+
+    if (uniqueCourses.size === 0) {
+        listContainer.innerHTML = `<p class="text-xs text-cream-muted dark:text-charcoal-muted text-center py-4">No courses available.</p>`;
+    } else {
+        const sortedCourses = Array.from(uniqueCourses).sort();
+
+        sortedCourses.forEach(code => {
+            const stats = getCourseAttendanceStats(code);
+
+            let percentageColor = "text-rose-600 dark:text-rose-400";
+            let barColor = "bg-rose-500";
+
+            if (stats.percentage >= 75) {
+                percentageColor = "text-emerald-600 dark:text-emerald-400";
+                barColor = "bg-emerald-500";
+            } else if (stats.percentage >= 60) {
+                percentageColor = "text-amber-600 dark:text-amber-400";
+                barColor = "bg-amber-500";
+            }
+
+            if (stats.total === 0) {
+                percentageColor = "text-neutral-500 dark:text-neutral-400";
+                barColor = "bg-neutral-300 dark:bg-neutral-600";
+            }
+
+            listContainer.innerHTML += `
+                <div class="border border-cream-border dark:border-charcoal-border bg-cream-bg dark:bg-charcoal-bg rounded-xl p-3 flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-bold text-cream-text dark:text-charcoal-text">${code}</span>
+                        <span class="text-xs font-bold ${percentageColor}">${stats.percentage}%</span>
+                    </div>
+                    <div class="w-full bg-neutral-200/50 dark:bg-neutral-800/80 rounded-full h-1.5 overflow-hidden">
+                        <div class="${barColor} h-full rounded-full" style="width: ${stats.percentage}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-medium text-cream-muted dark:text-charcoal-muted">
+                        <span>Present: ${stats.present}</span>
+                        <span>Absent: ${stats.absent}</span>
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    const modal = document.getElementById('stats-modal');
+    modal.classList.remove('hidden');
+    modal.offsetHeight; // force reflow
+    modal.classList.add('active');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeStatsModal() {
+    const modal = document.getElementById('stats-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }, 250);
+}
+
 function selectRoutine(id) {
     const matched = Object.values(routines).find(r => r.id === id);
     if (!matched) return;
@@ -831,6 +983,73 @@ function openClassModal(dayKey, index) {
         notesContainer.classList.add('hidden');
     }
     
+    // Setup Attendance UI
+    const targetDateStr = getDateForDayTab(dayKey);
+    document.getElementById('modal-attendance-date').innerText = `(${targetDateStr})`;
+
+    const updateAttendanceStatsUI = () => {
+        const stats = getCourseAttendanceStats(cls.code);
+        const statsEl = document.getElementById('modal-attendance-stats');
+        statsEl.innerText = `${stats.percentage}% (${stats.present}/${stats.total})`;
+
+        if (stats.percentage >= 75) {
+            statsEl.className = "text-xs font-bold text-emerald-600 dark:text-emerald-400";
+        } else if (stats.percentage >= 60) {
+            statsEl.className = "text-xs font-bold text-amber-600 dark:text-amber-400";
+        } else {
+            statsEl.className = "text-xs font-bold text-rose-600 dark:text-rose-400";
+        }
+
+        // Highlight active button
+        const currentStatus = attendanceData[activeRoutineId]?.[cls.code]?.[targetDateStr];
+        const btnPresent = document.getElementById('btn-attendance-present');
+        const btnAbsent = document.getElementById('btn-attendance-absent');
+
+        // Reset styles
+        btnPresent.classList.remove('bg-emerald-500', 'text-white', 'dark:text-white', 'hover:bg-emerald-600');
+        btnPresent.classList.add('bg-cream-card', 'dark:bg-charcoal-card', 'text-emerald-600', 'dark:text-emerald-400', 'hover:bg-emerald-50', 'dark:hover:bg-emerald-950/30');
+
+        btnAbsent.classList.remove('bg-rose-500', 'text-white', 'dark:text-white', 'hover:bg-rose-600');
+        btnAbsent.classList.add('bg-cream-card', 'dark:bg-charcoal-card', 'text-rose-600', 'dark:text-rose-400', 'hover:bg-rose-50', 'dark:hover:bg-rose-950/30');
+
+        if (currentStatus === 'present') {
+            btnPresent.classList.remove('bg-cream-card', 'dark:bg-charcoal-card', 'text-emerald-600', 'dark:text-emerald-400', 'hover:bg-emerald-50', 'dark:hover:bg-emerald-950/30');
+            btnPresent.classList.add('bg-emerald-500', 'text-white', 'dark:text-white', 'hover:bg-emerald-600');
+        } else if (currentStatus === 'absent') {
+            btnAbsent.classList.remove('bg-cream-card', 'dark:bg-charcoal-card', 'text-rose-600', 'dark:text-rose-400', 'hover:bg-rose-50', 'dark:hover:bg-rose-950/30');
+            btnAbsent.classList.add('bg-rose-500', 'text-white', 'dark:text-white', 'hover:bg-rose-600');
+        }
+    };
+
+    updateAttendanceStatsUI();
+
+    const btnPresent = document.getElementById('btn-attendance-present');
+    const btnAbsent = document.getElementById('btn-attendance-absent');
+    const btnClear = document.getElementById('btn-attendance-clear');
+
+    // Clear old listeners by cloning
+    const newBtnPresent = btnPresent.cloneNode(true);
+    btnPresent.parentNode.replaceChild(newBtnPresent, btnPresent);
+    const newBtnAbsent = btnAbsent.cloneNode(true);
+    btnAbsent.parentNode.replaceChild(newBtnAbsent, btnAbsent);
+    const newBtnClear = btnClear.cloneNode(true);
+    btnClear.parentNode.replaceChild(newBtnClear, btnClear);
+
+    newBtnPresent.addEventListener('click', () => {
+        markAttendance(cls.code, targetDateStr, 'present');
+        updateAttendanceStatsUI();
+    });
+
+    newBtnAbsent.addEventListener('click', () => {
+        markAttendance(cls.code, targetDateStr, 'absent');
+        updateAttendanceStatsUI();
+    });
+
+    newBtnClear.addEventListener('click', () => {
+        markAttendance(cls.code, targetDateStr, null);
+        updateAttendanceStatsUI();
+    });
+
     // Display the modal with animation
     const modal = document.getElementById('detail-modal');
     modal.classList.remove('hidden');
