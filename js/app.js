@@ -283,6 +283,32 @@ window.addEventListener('DOMContentLoaded', () => {
         showPwaBanner('ios');
         if (footerInstallBtn) footerInstallBtn.classList.remove('hidden');
     }
+
+    // Initialize Swipe Gestures on Daily View
+    const dailyView = document.getElementById('daily-view-section');
+    if (dailyView && typeof Hammer !== 'undefined') {
+        const mc = new Hammer(dailyView);
+        mc.on("swipeleft swiperight", (ev) => {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+            let currentIndex = days.indexOf(currentDayTab);
+            if (currentIndex === -1) return;
+
+            if (ev.type === "swipeleft" && currentIndex < days.length - 1) {
+                switchTab(days[currentIndex + 1]);
+            } else if (ev.type === "swiperight" && currentIndex > 0) {
+                switchTab(days[currentIndex - 1]);
+            }
+        });
+    }
+
+    // Global click listener to hide context menu
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('custom-context-menu');
+        if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            menu.classList.remove('opacity-100', 'scale-100');
+        }
+    });
 });
 
 // Update the main header title and subtitle dynamically
@@ -341,6 +367,7 @@ function setupInitialDay() {
 // Handle Active Tabs rendering
 function switchTab(dayKey) {
     currentDayTab = dayKey;
+    triggerHaptic('light');
     
     // Restart fade-in animation
     const timelineWrapper = document.getElementById('daily-timeline-wrapper');
@@ -641,7 +668,7 @@ function renderDaySchedule(dayKey) {
 
         // Render card layout (displays code + title)
         timeline.innerHTML += `
-            <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" class="schedule-card bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-5 cursor-pointer transition duration-250 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+            <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" oncontextmenu="openContextMenu(event, '${dayKey}', ${index})" class="schedule-card bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-5 cursor-pointer transition duration-250 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div class="flex items-start gap-3">
                         <div class="mt-1">
@@ -741,7 +768,7 @@ function renderWeeklyGrid() {
 
                 // Render card format: Only displays course code, NO titles, NO room number
                 cardsHtml += `
-                    <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" class="schedule-card shrink-0 w-[130px] md:w-[145px] bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-3 cursor-pointer select-none text-left transition duration-150 flex flex-col justify-between min-h-[85px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+                    <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" oncontextmenu="openContextMenu(event, '${dayKey}', ${index})" class="schedule-card shrink-0 w-[130px] md:w-[145px] bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-3 cursor-pointer select-none text-left transition duration-150 flex flex-col justify-between min-h-[85px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
                         <div>
                             <div class="flex items-center justify-between gap-1 mb-1">
                                 <div class="flex items-center gap-1">
@@ -791,6 +818,7 @@ function renderWeeklyGrid() {
 // Switch between Daily view list and Weekly calendar grid
 function toggleViewMode() {
     currentViewMode = (currentViewMode === 'daily') ? 'weekly' : 'daily';
+    triggerHaptic('light');
     
     // Update live banner immediately when toggling views
     updateRealTimeStatus();
@@ -1144,6 +1172,7 @@ function updatePomodoroUI() {
 function startPomodoro() {
     if (pomodoroIsRunning) return;
     pomodoroIsRunning = true;
+    triggerHaptic('light');
     document.getElementById('btn-pomodoro-start').classList.add('hidden');
     document.getElementById('btn-pomodoro-pause').classList.remove('hidden');
     document.getElementById('pomodoro-status').innerText = "Focusing...";
@@ -1249,6 +1278,39 @@ function addOverride() {
     if (!dateInput || !codeInput || !timeInput) {
         alert("Please fill in all fields.");
         return;
+    }
+
+    const newRange = parseRange(timeInput);
+    if (!newRange) {
+        alert("Invalid time format. Use something like '08:50 AM - 09:40 AM'");
+        return;
+    }
+
+    // Determine the day key from the date
+    const d = new Date(dateInput);
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayKey = dayMap[d.getDay()];
+
+    // Get effective classes for that day to check overlaps
+    const existingClasses = getEffectiveClassesForDay(dayKey, dateInput);
+
+    // Check overlap
+    let conflict = false;
+    for (const cls of existingClasses) {
+        const clsRange = parseRange(cls.time);
+        if (clsRange) {
+            if ((newRange.startMin >= clsRange.startMin && newRange.startMin < clsRange.endMin) ||
+                (newRange.endMin > clsRange.startMin && newRange.endMin <= clsRange.endMin) ||
+                (newRange.startMin <= clsRange.startMin && newRange.endMin >= clsRange.endMin)) {
+                conflict = true;
+                break;
+            }
+        }
+    }
+
+    if (conflict) {
+        const proceed = confirm("Warning: This makeup class overlaps with an existing class or override. Add anyway?");
+        if (!proceed) return;
     }
 
     if (!overridesData[activeRoutineId]) {
@@ -1649,16 +1711,19 @@ function openClassModal(dayKey, index) {
 
     newBtnPresent.addEventListener('click', () => {
         markAttendance(cls.code, targetDateStr, 'present');
+        triggerHaptic('light');
         updateAttendanceStatsUI();
     });
 
     newBtnAbsent.addEventListener('click', () => {
         markAttendance(cls.code, targetDateStr, 'absent');
+        triggerHaptic('light');
         updateAttendanceStatsUI();
     });
 
     newBtnClear.addEventListener('click', () => {
         markAttendance(cls.code, targetDateStr, null);
+        triggerHaptic('light');
         updateAttendanceStatsUI();
     });
 
@@ -2132,4 +2197,71 @@ function exportToCalendar() {
     
     // Provide user instructions
     alert("Calendar file (.ics) generated successfully!\n\nOpen the downloaded file to import your classes and activate 100% reliable background alerts.");
+}
+
+// Context Menu Logic
+let contextMenuTargetClass = null;
+
+function openContextMenu(event, dayKey, index) {
+    event.preventDefault(); // Prevent native right-click
+    if(typeof triggerHaptic === "function") triggerHaptic('heavy');
+
+    contextMenuTargetClass = { dayKey, index };
+
+    const menu = document.getElementById('custom-context-menu');
+    if (!menu) return;
+
+    // Position menu
+    menu.style.left = `${event.clientX}px`;
+    menu.style.top = `${event.clientY}px`;
+
+    menu.classList.remove('hidden');
+    menu.offsetWidth; // Reflow
+    menu.classList.add('opacity-100', 'scale-100');
+}
+
+function contextAction(actionType) {
+    const menu = document.getElementById('custom-context-menu');
+    if (menu) {
+        menu.classList.add('hidden');
+        menu.classList.remove('opacity-100', 'scale-100');
+    }
+
+    if (!contextMenuTargetClass || !currentRoutine) return;
+    const { dayKey, index } = contextMenuTargetClass;
+    const cls = getEffectiveClassesForDay(dayKey)[index];
+    if (!cls) return;
+
+    if (actionType === 'attendance') {
+        const targetDateStr = getDateForDayTab(dayKey);
+        const currentStatus = attendanceData[activeRoutineId]?.[cls.code]?.[targetDateStr];
+        markAttendance(cls.code, targetDateStr, currentStatus === 'present' ? null : 'present');
+        if(typeof triggerHaptic === "function") triggerHaptic('light');
+        if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+    } else if (actionType === 'notes') {
+        openClassModal(dayKey, index);
+        setTimeout(() => {
+            const notesArea = document.getElementById('modal-personal-notes');
+            if (notesArea) notesArea.focus();
+        }, 300);
+    } else if (actionType === 'override') {
+        openStudentDashboard();
+        setTimeout(() => {
+            const dateStr = getDateForDayTab(dayKey);
+            document.getElementById('override-date').value = dateStr;
+            document.getElementById('override-code').value = cls.code;
+            document.getElementById('override-time').value = cls.time;
+            document.getElementById('override-date').focus();
+        }, 100);
+    }
+
+    contextMenuTargetClass = null;
+}
+
+// Helper for Haptic Feedback
+function triggerHaptic(type = 'light') {
+    if (navigator.vibrate) {
+        if (type === 'light') navigator.vibrate(50);
+        else if (type === 'heavy') navigator.vibrate([100, 50, 100]);
+    }
 }
