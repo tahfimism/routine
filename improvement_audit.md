@@ -1,37 +1,23 @@
-# Improvement Audit
+# Improvement Audit v3
 
-## 1. LocalStorage for Sent Notifications
-- **Improvement:** Migrate `sentNotifications` state tracking from volatile memory to persistent `localStorage`.
-- **Reasoning:** In a PWA, users frequently open/close the app or let it sleep. In-memory variables are wiped on resume, potentially spamming duplicate alerts. Persistence guarantees accurate state. Accompanied by a daily cleanup mechanism to prevent `localStorage` bloat.
+*Note: Previous improvements (Student Dashboard, CGPA Estimator, ToDo Tracker, Pomodoro Timer, Schedule Overrides, Export to Image) have been successfully implemented.*
 
-## 2. Dynamic Relative Messaging for Alerts
-- **Improvement:** Instead of statically saying "Class starts in 10 minutes", calculate the exact remaining time (e.g., "Class starts in 8 minutes").
-- **Reasoning:** Since we are moving to a windowed check (`<= 10 && > 0`), background throttling might delay the execution. If it triggers at 8 minutes, the message should accurately reflect that rather than falsely claiming 10.
+## 1. AI Schedule Generator (On-Device)
+- **Improvement:** Integrate a lightweight, on-device AI model (e.g., using WebNN or ONNX runtime for web) to suggest personalized study schedules based on the user's routine, deadlines, and Pomodoro history.
+- **Reasoning:** Taking productivity to the next level without a backend. By analyzing when a student is most active and their upcoming deadlines, the browser can generate a dynamic, suggested daily study plan.
 
-## 3. Graceful Degradation in Notifications
-- **Improvement:** Improve the Promise handling for service worker pushes by adding comprehensive try/catch fallbacks.
-- **Reasoning:** Sometimes Service Worker registrations exist but are in a broken state. Proper try/catch around `showNotification` allows falling back gracefully to the standard browser `Notification` API.
+## 2. WebRTC Peer-to-Peer Routine Sync
+- **Improvement:** Implement WebRTC to allow students to "bump" phones or share a local QR code to sync their schedule overrides (makeup classes) directly with classmates without a server.
+- **Reasoning:** Since makeup classes are stored locally in `localStorage`, sharing them manually is tedious. WebRTC allows instant, offline-first sharing of overrides between peers in the same classroom.
 
-## 4. More Resilient String Parsing
-- **Improvement:** Adopt Regular Expressions `/[-–—]/` across the board where time strings are parsed.
-- **Reasoning:** Datasets in `data.js` may have inconsistent characters (en-dashes vs. normal hyphens). Using regex ensures strings are parsed flawlessly regardless of the formatting.
+## 3. Geolocation Auto-Mute
+- **Improvement:** Utilize the Geolocation API to detect when a student is physically outside the university campus (e.g., at home or traveling) and automatically suppress class push notifications.
+- **Reasoning:** If a student skips class and stays home, they likely don't want their phone buzzing every hour telling them a class is starting. A local geofence check before triggering the ServiceWorker notification solves this elegantly.
 
-## 5. Customizable Alert Times
-- **Improvement:** Allow users to define when they receive class start alerts (e.g. 5, 10, or 15 minutes before) rather than a hardcoded 10-minute warning.
-- **Reasoning:** Students who live farther from campus or need more time to transition between buildings would benefit from a customizable warning period. This value can be easily saved in `localStorage`.
+## 4. Dynamic Ambient Dark Mode
+- **Improvement:** Move beyond a simple static `#121212` dark mode. Use the browser's Canvas API to extract the dominant colors from the current routine's branding (e.g., the EWU logo or DSA color palette) and create a highly desaturated, ambient dark mode background specifically tailored to that routine.
+- **Reasoning:** Enhances the premium feel of the application. It provides a subtle, customized aesthetic for each routine while still preserving the battery-saving properties of OLED dark themes.
 
-## 6. Attendance Export to CSV
-- **Improvement:** Add a button in the Attendance Stats modal to export the user's recorded attendance data to a `.csv` file.
-- **Reasoning:** Allows students to keep a personal offline backup of their attendance data which currently lives only in `localStorage`. Simple frontend CSV generation using Blobs is lightweight and offline-friendly.
-
-## 7. Class Specific Notes
-- **Improvement:** Implement a feature in the Class Details Modal allowing users to add personal text notes (e.g. "Quiz next week", "Bring lab coat") for specific classes.
-- **Reasoning:** Adds personal utility to the dashboard without requiring backend infrastructure. These notes can be bound to the `courseCode` and stored in `localStorage`.
-
-## 8. Holiday/Vacation Mode Toggle
-- **Improvement:** Introduce a "Vacation Mode" toggle in the Settings modal that temporarily suspends all PWA push notifications and visual live-ongoing indicators.
-- **Reasoning:** During semester breaks or public holidays, students do not need class alerts. Rather than revoking notification permissions entirely, a toggle allows them to easily mute and unmute the dashboard.
-
-## 9. Web Share API Integration
-- **Improvement:** Utilize the native `navigator.share()` API to let users easily share the dashboard link or their specific routine link with classmates directly from the UI.
-- **Reasoning:** Leverages modern web APIs to improve organic discoverability of the tool with a very small code footprint.
+## 5. Routine Analytics & Heatmap
+- **Improvement:** Build a GitHub-style contribution heatmap in the Student Dashboard that visualizes the user's Pomodoro focus time and Attendance records over the entire semester.
+- **Reasoning:** Visualizing consistency is highly motivating for students. A calendar heatmap rendering locally via D3.js or a simple CSS grid provides immediate visual feedback on their academic dedication.

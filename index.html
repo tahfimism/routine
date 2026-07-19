@@ -31,6 +31,9 @@
     <meta name="apple-mobile-web-app-title" content="Routine">
     <link rel="apple-touch-icon" href="logo_dark_bg.png">
     
+    <!-- HTML2Canvas CDN for Image Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -97,13 +100,6 @@
                     <!-- Injected dynamically by app.js -->
                 </button>
 
-                <!-- Attendance Stats Toggle -->
-                <button onclick="openStatsModal()" id="btn-stats-toggle" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="View Attendance Stats">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </button>
-
                 <!-- Dynamic Push Alerts Toggle -->
                 <button onclick="toggleNotifications()" id="notification-btn" class="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Toggle Class Alerts">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -133,14 +129,30 @@
     </header>
 
     <!-- Main Schedule Container -->
-    <main class="max-w-3xl w-full mx-auto px-6 flex-grow flex flex-col gap-6">
+    <main class="max-w-3xl w-full mx-auto px-6 flex-grow flex flex-col gap-6 relative">
         
-        <!-- Routine Intelligence Banner -->
-        <div id="countdown-banner" class="hidden p-4 rounded-xl border border-cream-border dark:border-charcoal-border bg-neutral-50/40 dark:bg-neutral-900/20 text-xs font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
-            <!-- Countdown timer or greeting states injected dynamically -->
-        </div>
+        <!-- App Main View Wrapper -->
+        <div id="app-main-view" class="flex flex-col gap-6 animate-fade-in">
+            <!-- Routine Intelligence Banner -->
+            <div id="countdown-banner" class="hidden p-4 rounded-xl border border-cream-border dark:border-charcoal-border bg-neutral-50/40 dark:bg-neutral-900/20 text-xs font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                <!-- Countdown timer or greeting states injected dynamically -->
+            </div>
 
-        <!-- Daily View Section -->
+            <!-- Student Dashboard Entry Card -->
+            <div role="button" tabindex="0" onclick="openStudentDashboard()" class="w-full bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500/10 dark:hover:bg-emerald-500/20 text-white dark:text-emerald-400 border border-transparent dark:border-emerald-500/30 rounded-xl p-4 flex items-center justify-between cursor-pointer transition shadow-sm select-none">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-white/20 dark:bg-emerald-500/20 rounded-lg">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold">Student Dashboard</h3>
+                        <p class="text-[11px] font-medium text-emerald-100 dark:text-emerald-300 mt-0.5">Focus Timer, To-Do, CGPA & Stats</p>
+                    </div>
+                </div>
+                <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+            </div>
+
+            <!-- Daily View Section -->
         <div id="daily-view-section" class="flex flex-col gap-6">
             <!-- Day Navigation Tabs -->
             <nav class="flex border-b border-cream-border dark:border-charcoal-border overflow-x-auto scrollbar-none">
@@ -169,11 +181,150 @@
 
         <!-- Weekly View Section -->
         <div id="weekly-view-section" class="hidden flex flex-col gap-6 animate-fade-in">
-            <div id="weekly-grid-container" class="flex flex-col gap-6 divide-y divide-cream-border/60 dark:divide-charcoal-border/50">
+            <div id="weekly-grid-container" class="bg-cream-bg dark:bg-charcoal-bg flex flex-col gap-6 divide-y divide-cream-border/60 dark:divide-charcoal-border/50 rounded-2xl overflow-hidden p-2">
                 <!-- Injected dynamically by JavaScript -->
             </div>
+
+            <button onclick="exportRoutineToImage()" class="w-full py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50 mt-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                Export Weekly Routine as Image
+            </button>
         </div>
-        
+        </div> <!-- End of App Main View -->
+
+        <!-- Student Dashboard Section -->
+        <div id="student-dashboard-section" class="hidden flex-col gap-6 animate-fade-in pb-10">
+
+            <!-- Dashboard Header -->
+            <div class="flex items-center gap-4">
+                <button onclick="closeStudentDashboard()" class="p-2 rounded-xl bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border text-cream-text dark:text-charcoal-text hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <div>
+                    <h2 class="text-xl font-bold text-cream-text dark:text-charcoal-text leading-tight">Dashboard</h2>
+                    <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5">Productivity & Analytics Hub</p>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid Layout -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- Pomodoro Timer Module -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-rose-500">🍅</span>
+                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Focus Timer</h3>
+                    </div>
+                    <div class="text-center mb-6">
+                        <div id="pomodoro-time" class="text-5xl font-extrabold text-neutral-800 dark:text-neutral-100 tabular-nums tracking-tighter">25:00</div>
+                        <div id="pomodoro-status" class="text-[10px] font-bold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted mt-2">Ready to Focus</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="btn-pomodoro-start" onclick="startPomodoro()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Start</button>
+                        <button id="btn-pomodoro-pause" onclick="pausePomodoro()" class="hidden flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition shadow-sm">Pause</button>
+                        <button onclick="resetPomodoro()" class="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-xs font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Assignment / Deadline To-Do Module -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm flex flex-col h-[280px]">
+                    <div class="flex items-center justify-between mb-4 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-indigo-500">📝</span>
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Deadlines & Tasks</h3>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mb-4 shrink-0">
+                        <input type="text" id="todo-input" placeholder="e.g. ECE Assignment due Friday" class="flex-1 px-3 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
+                        <button onclick="addTodo()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Add</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto pr-1 scrollbar-none">
+                        <ul id="todo-list" class="space-y-2">
+                            <!-- Todos injected here -->
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- CGPA Estimator Module -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-blue-500">🎓</span>
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">CGPA Estimator</h3>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[10px] font-bold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted">Est. CGPA</p>
+                            <p id="cgpa-result" class="text-xl font-extrabold text-blue-600 dark:text-blue-400 leading-none">0.00</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-cream-border dark:border-charcoal-border">
+                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted">Course Code</th>
+                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted w-20">Credits</th>
+                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted w-24">Target Grade</th>
+                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted w-10"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="cgpa-list" class="divide-y divide-cream-border/60 dark:divide-charcoal-border/50 text-xs">
+                                <!-- CGPA items injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button onclick="addCgpaCourse()" class="mt-4 w-full py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[11px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50 border-dashed">
+                        + Add Course Entry
+                    </button>
+                </div>
+
+                <!-- Schedule Overrides (Makeup Classes) Module -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-amber-500">📅</span>
+                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides (Makeup Classes)</h3>
+                    </div>
+                    <p class="text-[11px] text-cream-muted dark:text-charcoal-muted font-medium mb-4">Add a makeup class for a specific date. This overrides the live tracking banner.</p>
+
+                    <div class="flex flex-wrap gap-2 mb-4 items-end">
+                        <div class="flex-1 min-w-[120px]">
+                            <label class="block text-[10px] font-bold mb-1 text-cream-muted dark:text-charcoal-muted">Date (YYYY-MM-DD)</label>
+                            <input type="date" id="override-date" class="w-full px-2 py-1.5 text-xs rounded border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text">
+                        </div>
+                        <div class="w-24">
+                            <label class="block text-[10px] font-bold mb-1 text-cream-muted dark:text-charcoal-muted">Code</label>
+                            <input type="text" id="override-code" placeholder="e.g. ECE 2101" class="w-full px-2 py-1.5 text-xs rounded border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text">
+                        </div>
+                        <div class="w-32">
+                            <label class="block text-[10px] font-bold mb-1 text-cream-muted dark:text-charcoal-muted">Time Range</label>
+                            <input type="text" id="override-time" placeholder="08:50 AM - 09:40 AM" class="w-full px-2 py-1.5 text-xs rounded border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text">
+                        </div>
+                        <button onclick="addOverride()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded shadow-sm">Save</button>
+                    </div>
+
+                    <ul id="overrides-list" class="space-y-2 text-xs">
+                        <!-- Overrides injected here -->
+                    </ul>
+                </div>
+
+                <!-- Attendance Stats List (Moved from Modal) -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-emerald-500">📊</span>
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Attendance Analytics</h3>
+                        </div>
+                        <button onclick="exportAttendanceToCSV()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">
+                            Export CSV
+                        </button>
+                    </div>
+                    <div id="dashboard-stats-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Stats injected here -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </main>
 
     <!-- Minimal Subtle Footer -->
@@ -281,46 +432,6 @@
             </div>
         </div>
     </div>
-    <!-- Global Attendance Stats Modal -->
-    <div id="stats-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
-        <!-- Backdrop Blur Overlay -->
-        <div onclick="closeStatsModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>
-
-        <!-- Modal Card Content -->
-        <div class="modal-content relative bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl w-full max-w-sm shadow-2xl p-6 overflow-hidden transform scale-95 opacity-0 transition-all duration-200 flex flex-col max-h-[80vh]">
-            <!-- Header with close button -->
-            <div class="flex items-start justify-between gap-4 shrink-0">
-                <div>
-                    <h2 class="text-base font-extrabold text-cream-text dark:text-charcoal-text leading-tight">
-                        Attendance Stats
-                    </h2>
-                    <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-1 font-medium">Overall presence report</p>
-                </div>
-                <button onclick="closeStatsModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Close stats modal">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <!-- Stats List -->
-            <div class="mt-6 flex-1 overflow-y-auto pr-2 scrollbar-none mb-4">
-                <div id="stats-list" class="space-y-3">
-                    <!-- Injected dynamically by app.js -->
-                </div>
-            </div>
-
-            <div class="pt-4 border-t border-cream-border dark:border-charcoal-border shrink-0">
-                <button onclick="exportAttendanceToCSV()" class="w-full py-2.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                    </svg>
-                    Export as CSV
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- User Settings Modal -->
     <div id="user-settings-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
         <div onclick="closeUserSettingsModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>
