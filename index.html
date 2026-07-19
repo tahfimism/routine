@@ -34,6 +34,9 @@
     <!-- HTML2Canvas CDN for Image Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+    <!-- QRCode CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -279,9 +282,14 @@
 
                 <!-- Schedule Overrides (Makeup Classes) Module -->
                 <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-amber-500">📅</span>
-                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides (Makeup Classes)</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-amber-500">📅</span>
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides</h3>
+                        </div>
+                        <button onclick="shareOverrides()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">
+                            Sync / Share
+                        </button>
                     </div>
                     <p class="text-[11px] text-cream-muted dark:text-charcoal-muted font-medium mb-4">Add a makeup class for a specific date. This overrides the live tracking banner.</p>
 
@@ -304,6 +312,28 @@
                     <ul id="overrides-list" class="space-y-2 text-xs">
                         <!-- Overrides injected here -->
                     </ul>
+                </div>
+
+                <!-- Pomodoro Analytics Heatmap -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-rose-400">🔥</span>
+                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Focus Heatmap</h3>
+                    </div>
+                    <div id="heatmap-container" class="flex gap-1 overflow-x-auto scrollbar-none pb-2">
+                        <!-- Heatmap cells injected dynamically -->
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-[10px] font-medium text-cream-muted dark:text-charcoal-muted">
+                        <span>Last 30 Days</span>
+                        <span class="flex items-center gap-1">
+                            Less
+                            <span class="w-2.5 h-2.5 rounded-sm bg-neutral-100 dark:bg-neutral-800"></span>
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-200 dark:bg-emerald-900/40"></span>
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 dark:bg-emerald-700/60"></span>
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600 dark:bg-emerald-500"></span>
+                            More
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Attendance Stats List (Moved from Modal) -->
@@ -432,6 +462,28 @@
             </div>
         </div>
     </div>
+    <!-- Share Overrides Modal -->
+    <div id="share-overrides-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div onclick="closeShareOverridesModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>
+        <div class="modal-content relative bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl w-full max-w-sm shadow-2xl p-6 overflow-hidden transform scale-95 opacity-0 transition-all duration-200 text-center">
+            <div class="flex justify-end mb-2">
+                <button onclick="closeShareOverridesModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Close modal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <h3 class="text-lg font-bold text-cream-text dark:text-charcoal-text mb-2">Sync Overrides</h3>
+            <p class="text-xs text-cream-muted dark:text-charcoal-muted mb-6">Scan QR or copy link to import</p>
+
+            <div id="qrcode-container" class="flex justify-center p-4 bg-white rounded-xl mx-auto w-fit mb-6 shadow-sm border border-neutral-200"></div>
+
+            <div class="flex gap-2">
+                <input type="text" id="share-link-input" readonly class="flex-1 px-3 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text focus:outline-none">
+                <button onclick="copyShareLink()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Copy</button>
+            </div>
+        </div>
+    </div>
+
     <!-- User Settings Modal -->
     <div id="user-settings-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
         <div onclick="closeUserSettingsModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>

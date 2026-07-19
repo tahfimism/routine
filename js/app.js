@@ -130,6 +130,34 @@ function markAttendance(courseCode, dateStr, status) {
 window.addEventListener('DOMContentLoaded', () => {
     // Check if query parameter 'r' is present and matches a valid routine id
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Check for incoming overrides sync data
+    const syncParam = urlParams.get('import_overrides');
+    if (syncParam) {
+        try {
+            const importedData = JSON.parse(decodeURIComponent(atob(syncParam)));
+            const confirmImport = confirm(`Import ${Object.keys(importedData).length} days of schedule overrides?`);
+            if (confirmImport) {
+                // Merge into current routine's overrides
+                const currentRoutineId = localStorage.getItem('active_routine_id') || 'ece21';
+                if (!overridesData[currentRoutineId]) overridesData[currentRoutineId] = {};
+
+                for (const date in importedData) {
+                    overridesData[currentRoutineId][date] = importedData[date];
+                }
+                saveOverrides();
+                alert('Overrides successfully imported!');
+            }
+
+            // Clean URL
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (urlParams.get('r') ? `?r=${urlParams.get('r')}` : '');
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        } catch (e) {
+            console.error("Failed to parse imported overrides", e);
+            alert("Invalid sync link.");
+        }
+    }
+
     const rParam = urlParams.get('r');
     
     const routinesList = Object.values(routines);
@@ -183,6 +211,7 @@ window.addEventListener('DOMContentLoaded', () => {
             closeModal();
             closeSettingsModal();
             closeUserSettingsModal();
+            closeShareOverridesModal();
         }
     });
 
@@ -821,6 +850,7 @@ function openStudentDashboard() {
         renderCgpa();
         renderOverrides();
         renderDashboardAttendance();
+        renderHeatmap();
     }
 }
 
@@ -1062,6 +1092,40 @@ function renderDashboardAttendance() {
 }
 
 // 2. Pomodoro Timer
+let pomodoroStats = JSON.parse(localStorage.getItem("pomodoro_stats_v1") || "{}");
+
+function savePomodoroStats(minutes) {
+    const today = new Date().toISOString().split("T")[0];
+    if (!pomodoroStats[today]) pomodoroStats[today] = 0;
+    pomodoroStats[today] += minutes;
+    localStorage.setItem("pomodoro_stats_v1", JSON.stringify(pomodoroStats));
+    renderHeatmap();
+}
+
+function renderHeatmap() {
+    const container = document.getElementById("heatmap-container");
+    if (!container) return;
+    container.innerHTML = "";
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]);
+    }
+    days.forEach(dateStr => {
+        const mins = pomodoroStats[dateStr] || 0;
+        let colorClass = "bg-neutral-100 dark:bg-neutral-800 border border-cream-border dark:border-charcoal-border";
+        if (mins > 0 && mins <= 25) {
+            colorClass = "bg-emerald-200 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800";
+        } else if (mins > 25 && mins <= 60) {
+            colorClass = "bg-emerald-400 dark:bg-emerald-700/60 border border-emerald-500 dark:border-emerald-600";
+        } else if (mins > 60) {
+            colorClass = "bg-emerald-600 dark:bg-emerald-500 border border-emerald-700 dark:border-emerald-400";
+        }
+        container.innerHTML += `<div class="w-4 h-4 rounded-sm shrink-0 transition-colors ${colorClass}" title="${dateStr}: ${mins} minutes focused"></div>`;
+    });
+}
+
 let pomodoroTimer = null;
 let pomodoroTimeLeft = 25 * 60; // 25 minutes
 let pomodoroIsRunning = false;
@@ -1092,6 +1156,7 @@ function startPomodoro() {
             clearInterval(pomodoroTimer);
             pomodoroIsRunning = false;
             document.getElementById('pomodoro-status').innerText = "Time's up! Take a break.";
+            savePomodoroStats(25);
             if (notificationsEnabled && Notification.permission === "granted") {
                 showNotification("Pomodoro Complete", { body: "Great job! Take a 5 minute break." });
             }
@@ -1229,6 +1294,62 @@ function deleteOverride(date, index) {
         if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
         else renderWeeklyGrid();
     }
+}
+
+function shareOverrides() {
+    const currentOverrides = overridesData[activeRoutineId];
+    if (!currentOverrides || Object.keys(currentOverrides).length === 0) {
+        alert("No overrides exist for the current routine to share.");
+        return;
+    }
+
+    try {
+        const compressedData = btoa(encodeURIComponent(JSON.stringify(currentOverrides)));
+        const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        const shareUrl = `${baseUrl}?r=${activeRoutineId}&import_overrides=${compressedData}`;
+
+        document.getElementById('share-link-input').value = shareUrl;
+
+        // Generate QR
+        const qrContainer = document.getElementById('qrcode-container');
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+            text: shareUrl,
+            width: 128,
+            height: 128,
+            colorDark : "#121212",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.L
+        });
+
+        const modal = document.getElementById('share-overrides-modal');
+        modal.classList.remove('hidden');
+        modal.offsetHeight; // force reflow
+        modal.classList.add('active');
+        document.body.classList.add('overflow-hidden');
+    } catch (e) {
+        console.error("Failed to generate share link", e);
+        alert("Error generating share link.");
+    }
+}
+
+function closeShareOverridesModal() {
+    const modal = document.getElementById('share-overrides-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }, 250);
+}
+
+function copyShareLink() {
+    const input = document.getElementById('share-link-input');
+    input.select();
+    document.execCommand('copy');
+    alert("Link copied!");
 }
 
 function renderOverrides() {
