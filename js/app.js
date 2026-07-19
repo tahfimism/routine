@@ -8,6 +8,8 @@ let currentRoutine = null;
 
 // Notification Alert States
 let notificationsEnabled = localStorage.getItem('notifications_enabled') === 'true';
+let alertTimeOffset = parseInt(localStorage.getItem('alert_time_offset') || '10', 10);
+let vacationMode = localStorage.getItem('vacation_mode') === 'true';
 let sentNotifications = {};
 try {
     const saved = localStorage.getItem('sent_notifications');
@@ -49,6 +51,21 @@ try {
 
 function saveAttendanceData() {
     localStorage.setItem('attendance_data_v1', JSON.stringify(attendanceData));
+}
+
+// Personal Notes State
+let personalNotesData = {};
+try {
+    const savedNotes = localStorage.getItem('personal_notes_v1');
+    if (savedNotes) {
+        personalNotesData = JSON.parse(savedNotes);
+    }
+} catch (e) {
+    console.error("Error parsing personalNotesData", e);
+}
+
+function savePersonalNotesData() {
+    localStorage.setItem('personal_notes_v1', JSON.stringify(personalNotesData));
 }
 
 // Helper to get a date string for a given day in the current week (Sun-Thu)
@@ -166,6 +183,7 @@ window.addEventListener('DOMContentLoaded', () => {
             closeModal();
             closeSettingsModal();
             closeStatsModal();
+            closeUserSettingsModal();
         }
     });
 
@@ -350,6 +368,23 @@ function startRealTimeTracker() {
 function updateRealTimeStatus() {
     if (!currentRoutine) return;
     
+    const banner = document.getElementById('countdown-banner');
+    if (!banner) return;
+
+    if (vacationMode) {
+        banner.innerHTML = `
+            <svg class="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
+            </svg>
+            <span class="text-emerald-700 dark:text-emerald-400">Vacation Mode Active - Notifications & Live Tracking Paused</span>
+        `;
+        banner.classList.remove('hidden');
+        if (currentViewMode === 'daily') {
+            renderDaySchedule(currentDayTab);
+        }
+        return;
+    }
+
     const now = new Date();
     const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const currentDay = dayMap[now.getDay()];
@@ -357,9 +392,6 @@ function updateRealTimeStatus() {
     
     const academicDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
     const isAcademic = academicDays.includes(currentDay);
-    
-    const banner = document.getElementById('countdown-banner');
-    if (!banner) return;
     
     // Check class alert triggers
     checkUpcomingClassAlerts();
@@ -564,7 +596,7 @@ function renderDaySchedule(dayKey) {
         let remainingMins = 0;
         let progressPercent = 0;
 
-        if (dayKey === currentSystemDay) {
+        if (!vacationMode && dayKey === currentSystemDay) {
             if (range && currentMin >= range.startMin && currentMin < range.endMin) {
                 isLive = true;
                 elapsedMins = currentMin - range.startMin;
@@ -668,7 +700,7 @@ function renderWeeklyGrid() {
 
                 // Check live class in weekly view
                 let isLive = false;
-                if (isToday) {
+                if (!vacationMode && isToday) {
                     const range = parseRange(cls.time);
                     if (range && currentMin >= range.startMin && currentMin < range.endMin) {
                         isLive = true;
@@ -773,6 +805,106 @@ function updateViewModeUI() {
 }
 
 // Settings modal options handlers
+function openUserSettingsModal() {
+    // Update alert buttons UI
+    const alerts = [5, 10, 15];
+    alerts.forEach(min => {
+        const btn = document.getElementById(`btn-alert-${min}m`);
+        if (btn) {
+            if (min === alertTimeOffset) {
+                btn.classList.remove('bg-cream-card', 'dark:bg-charcoal-card', 'text-cream-text', 'dark:text-charcoal-text', 'border-neutral-200', 'dark:border-neutral-700');
+                btn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
+            } else {
+                btn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500');
+                btn.classList.add('bg-cream-card', 'dark:bg-charcoal-card', 'text-cream-text', 'dark:text-charcoal-text', 'border-neutral-200', 'dark:border-neutral-700');
+            }
+        }
+    });
+
+    // Update vacation mode toggle UI
+    const vacToggle = document.getElementById('vacation-mode-toggle');
+    if (vacToggle) {
+        vacToggle.checked = vacationMode;
+    }
+
+    const modal = document.getElementById('user-settings-modal');
+    modal.classList.remove('hidden');
+    modal.offsetHeight; // force reflow
+    modal.classList.add('active');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeUserSettingsModal() {
+    const modal = document.getElementById('user-settings-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }, 250);
+}
+
+function saveAlertTime(min) {
+    alertTimeOffset = min;
+    localStorage.setItem('alert_time_offset', min.toString());
+
+    // Re-render UI
+    const alerts = [5, 10, 15];
+    alerts.forEach(m => {
+        const btn = document.getElementById(`btn-alert-${m}m`);
+        if (btn) {
+            if (m === alertTimeOffset) {
+                btn.classList.remove('bg-cream-card', 'dark:bg-charcoal-card', 'text-cream-text', 'dark:text-charcoal-text', 'border-neutral-200', 'dark:border-neutral-700');
+                btn.classList.add('bg-emerald-500', 'text-white', 'border-emerald-500');
+            } else {
+                btn.classList.remove('bg-emerald-500', 'text-white', 'border-emerald-500');
+                btn.classList.add('bg-cream-card', 'dark:bg-charcoal-card', 'text-cream-text', 'dark:text-charcoal-text', 'border-neutral-200', 'dark:border-neutral-700');
+            }
+        }
+    });
+}
+
+function toggleVacationMode() {
+    vacationMode = !vacationMode;
+    localStorage.setItem('vacation_mode', vacationMode ? 'true' : 'false');
+
+    const vacToggle = document.getElementById('vacation-mode-toggle');
+    if (vacToggle) {
+        vacToggle.checked = vacationMode;
+    }
+
+    // Force UI refresh for live tracking
+    updateRealTimeStatus();
+    if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+    else renderWeeklyGrid();
+}
+
+async function shareDashboard() {
+    const shareData = {
+        title: 'Class Routine Dashboard',
+        text: 'Check out this offline-first class schedule tracker.',
+        url: window.location.href
+    };
+
+    if (navigator.share) {
+        try {
+            await navigator.share(shareData);
+        } catch (err) {
+            console.error('Error sharing:', err);
+        }
+    } else {
+        // Fallback to copy to clipboard
+        try {
+            await navigator.clipboard.writeText(window.location.href);
+            alert('Link copied to clipboard!');
+        } catch (err) {
+            alert('Failed to copy link.');
+        }
+    }
+}
+
 function openSettingsModal() {
     const listContainer = document.getElementById('routine-options-list');
     if (!listContainer) return;
@@ -982,6 +1114,21 @@ function openClassModal(dayKey, index) {
     } else {
         notesContainer.classList.add('hidden');
     }
+
+    // Setup Personal Notes UI
+    const personalNotesTextarea = document.getElementById('modal-personal-notes');
+
+    // Remove previous listeners
+    const newPersonalNotesTextarea = personalNotesTextarea.cloneNode(true);
+    personalNotesTextarea.parentNode.replaceChild(newPersonalNotesTextarea, personalNotesTextarea);
+
+    const classId = `${activeRoutineId}_${cls.code}`;
+    newPersonalNotesTextarea.value = personalNotesData[classId] || '';
+
+    newPersonalNotesTextarea.addEventListener('input', (e) => {
+        personalNotesData[classId] = e.target.value;
+        savePersonalNotesData();
+    });
     
     // Setup Attendance UI
     const targetDateStr = getDateForDayTab(dayKey);
@@ -1060,6 +1207,32 @@ function openClassModal(dayKey, index) {
     
     // Prevent body scrolling
     document.body.classList.add('overflow-hidden');
+}
+
+function exportAttendanceToCSV() {
+    if (!currentRoutine || !attendanceData[activeRoutineId]) {
+        alert("No attendance data to export.");
+        return;
+    }
+
+    const routineData = attendanceData[activeRoutineId];
+    let csvContent = "Course Code,Date,Status\n";
+
+    for (const courseCode in routineData) {
+        for (const date in routineData[courseCode]) {
+            const status = routineData[courseCode][date];
+            csvContent += `"${courseCode}","${date}","${status}"\n`;
+        }
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${activeRoutineId}_attendance.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 function closeModal() {
@@ -1206,7 +1379,7 @@ function getDateForTimeToday(minutes) {
 
 // Alarm logic checks class intervals and alerts, plus schedules background notifications
 function checkUpcomingClassAlerts() {
-    if (!notificationsEnabled || Notification.permission !== "granted" || !currentRoutine) return;
+    if (!notificationsEnabled || Notification.permission !== "granted" || !currentRoutine || vacationMode) return;
 
     const now = new Date();
     const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -1261,21 +1434,19 @@ function checkUpcomingClassAlerts() {
             }
         }
 
-        // 1. Alert 10 minutes before class start (handle throttling by checking <= 10 and > 0)
-        // Only run real-time checks if Triggers API is NOT supported, or to catch immediate missed triggers
-        if (minutesDiff <= 10 && minutesDiff > 0) {
-            const alertKey = `${dateStr}_${cls.code}_10m`;
+        // 1. Alert exactly before class start depending on alertTimeOffset
+        if (minutesDiff <= alertTimeOffset && minutesDiff > 0) {
+            const alertKey = `${dateStr}_${cls.code}_${alertTimeOffset}m`;
             const scheduledKey = `${dateStr}_${cls.code}_scheduled`;
 
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
                 localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
 
-                // Show fallback if triggers not supported OR if it was never scheduled
                 if (!triggerSupported || !sentNotifications[scheduledKey]) {
                     showNotification(`Class starts in ${minutesDiff} minute${minutesDiff > 1 ? 's' : ''}!`, {
                         body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
-                        tag: `class-10m-${cls.code}`,
+                        tag: `class-${alertTimeOffset}m-${cls.code}`,
                         requireInteraction: true
                     });
                 }
