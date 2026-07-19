@@ -1,37 +1,27 @@
-# Improvement Audit
+# Improvement Audit v2
 
-## 1. LocalStorage for Sent Notifications
-- **Improvement:** Migrate `sentNotifications` state tracking from volatile memory to persistent `localStorage`.
-- **Reasoning:** In a PWA, users frequently open/close the app or let it sleep. In-memory variables are wiped on resume, potentially spamming duplicate alerts. Persistence guarantees accurate state. Accompanied by a daily cleanup mechanism to prevent `localStorage` bloat.
+*Note: Previous improvements (Notifications, CSV Export, Custom Alerts, Personal Notes, Vacation Mode, Web Share) have been successfully implemented. This document outlines the next generation of potential frontend-only enhancements.*
 
-## 2. Dynamic Relative Messaging for Alerts
-- **Improvement:** Instead of statically saying "Class starts in 10 minutes", calculate the exact remaining time (e.g., "Class starts in 8 minutes").
-- **Reasoning:** Since we are moving to a windowed check (`<= 10 && > 0`), background throttling might delay the execution. If it triggers at 8 minutes, the message should accurately reflect that rather than falsely claiming 10.
+## 1. Local Assignment & Deadline Tracker
+- **Improvement:** Introduce a localized task manager (To-Do / Kanban) integrated directly into the dashboard, allowing users to bind assignments, quizzes, and project deadlines to specific courses.
+- **Reasoning:** Students constantly juggle tasks alongside their routine. A task tracker that inherently understands their registered courses and visually flags upcoming deadlines right on the daily view cards provides immense utility without needing a backend server (`localStorage` only).
 
-## 3. Graceful Degradation in Notifications
-- **Improvement:** Improve the Promise handling for service worker pushes by adding comprehensive try/catch fallbacks.
-- **Reasoning:** Sometimes Service Worker registrations exist but are in a broken state. Proper try/catch around `showNotification` allows falling back gracefully to the standard browser `Notification` API.
+## 2. Interactive CGPA / Grade Estimator
+- **Improvement:** Add a new module where students can input the credit hours for their courses (auto-populated from the routine if available) and dynamically calculate their expected semester GPA based on target grades.
+- **Reasoning:** GPA calculation is a universal student need. A sleek, frontend calculator that saves their targets in `localStorage` keeps them engaged with the dashboard outside of active class hours.
 
-## 4. More Resilient String Parsing
-- **Improvement:** Adopt Regular Expressions `/[-–—]/` across the board where time strings are parsed.
-- **Reasoning:** Datasets in `data.js` may have inconsistent characters (en-dashes vs. normal hyphens). Using regex ensures strings are parsed flawlessly regardless of the formatting.
+## 3. Temporary Schedule Overrides (Makeup Classes)
+- **Improvement:** Build a mechanism for users to inject a "one-off" makeup class or cancel a canceled class for a specific calendar date, seamlessly updating the live tracking and timeline UI for that day only.
+- **Reasoning:** University schedules are rarely 100% static. Teachers often reschedule classes. Allowing local overrides ensures the dashboard's "Live Intelligence" banner remains accurate even when the base routine changes temporarily.
 
-## 5. Customizable Alert Times
-- **Improvement:** Allow users to define when they receive class start alerts (e.g. 5, 10, or 15 minutes before) rather than a hardcoded 10-minute warning.
-- **Reasoning:** Students who live farther from campus or need more time to transition between buildings would benefit from a customizable warning period. This value can be easily saved in `localStorage`.
+## 4. Built-in Pomodoro & Study Timer
+- **Improvement:** Embed a minimalist Pomodoro focus timer that utilizes the same visual ring/progress bar aesthetics as the live class tracker.
+- **Reasoning:** Since the app already acts as a time-management hub during classes, expanding this to cover self-study hours between classes makes the app useful 24/7. It requires no backend, just `setInterval` and `localStorage` for stats.
 
-## 6. Attendance Export to CSV
-- **Improvement:** Add a button in the Attendance Stats modal to export the user's recorded attendance data to a `.csv` file.
-- **Reasoning:** Allows students to keep a personal offline backup of their attendance data which currently lives only in `localStorage`. Simple frontend CSV generation using Blobs is lightweight and offline-friendly.
+## 5. Routine Export to Image (Wallpaper Mode)
+- **Improvement:** Utilize an HTML-to-Canvas library (or carefully crafted `@media print` CSS) to allow students to export their Weekly Grid View as a high-resolution, perfectly cropped PNG image.
+- **Reasoning:** Many students prefer setting their routine as their phone lock screen wallpaper. Providing a 1-click native export to an aesthetically pleasing image caters directly to this behavioral habit.
 
-## 7. Class Specific Notes
-- **Improvement:** Implement a feature in the Class Details Modal allowing users to add personal text notes (e.g. "Quiz next week", "Bring lab coat") for specific classes.
-- **Reasoning:** Adds personal utility to the dashboard without requiring backend infrastructure. These notes can be bound to the `courseCode` and stored in `localStorage`.
-
-## 8. Holiday/Vacation Mode Toggle
-- **Improvement:** Introduce a "Vacation Mode" toggle in the Settings modal that temporarily suspends all PWA push notifications and visual live-ongoing indicators.
-- **Reasoning:** During semester breaks or public holidays, students do not need class alerts. Rather than revoking notification permissions entirely, a toggle allows them to easily mute and unmute the dashboard.
-
-## 9. Web Share API Integration
-- **Improvement:** Utilize the native `navigator.share()` API to let users easily share the dashboard link or their specific routine link with classmates directly from the UI.
-- **Reasoning:** Leverages modern web APIs to improve organic discoverability of the tool with a very small code footprint.
+## 6. Local Voice Memos (MediaRecorder API)
+- **Improvement:** Integrate a small voice recorder inside the Class Details Modal using the native browser `MediaRecorder` API to record short lecture audio snippets.
+- **Reasoning:** Pushes the boundaries of what a PWA can do offline. Audio Blobs can be recorded, played back, or downloaded directly from the browser's memory without hitting a server.
