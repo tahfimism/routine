@@ -309,6 +309,72 @@ window.addEventListener('DOMContentLoaded', () => {
             menu.classList.remove('opacity-100', 'scale-100');
         }
     });
+
+    // Pull to Refresh Logic
+    let touchStartY = 0;
+    let ptrIndicator = document.getElementById('ptr-indicator');
+    let ptrIcon = document.getElementById('ptr-icon');
+    let isRefreshing = false;
+
+    document.addEventListener('touchstart', e => {
+        if (window.scrollY === 0 && !isRefreshing) {
+            touchStartY = e.touches[0].clientY;
+        }
+    }, {passive: true});
+
+    document.addEventListener('touchmove', e => {
+        if (window.scrollY === 0 && !isRefreshing && touchStartY > 0) {
+            const touchY = e.touches[0].clientY;
+            const pullDistance = touchY - touchStartY;
+
+            if (pullDistance > 0 && ptrIndicator) {
+                const translateY = Math.min(pullDistance - 64, 20); // max pull visual limit
+                ptrIndicator.style.transform = `translateY(${translateY}px)`;
+
+                if (pullDistance > 80) {
+                    ptrIcon.classList.add('rotate-180');
+                } else {
+                    ptrIcon.classList.remove('rotate-180');
+                }
+            }
+        }
+    }, {passive: true});
+
+    document.addEventListener('touchend', e => {
+        if (window.scrollY === 0 && !isRefreshing && touchStartY > 0) {
+            const touchY = e.changedTouches[0].clientY;
+            const pullDistance = touchY - touchStartY;
+
+            if (pullDistance > 80 && ptrIndicator) {
+                isRefreshing = true;
+                triggerHaptic('heavy');
+                document.getElementById('ptr-text').innerText = "Syncing...";
+                ptrIcon.classList.add('animate-spin');
+
+                // Simulate sync
+                setTimeout(() => {
+                    updateRealTimeStatus();
+                    if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+                    else renderWeeklyGrid();
+
+                    document.getElementById('ptr-text').innerText = "Synced!";
+                    ptrIcon.classList.remove('animate-spin');
+                    triggerHaptic('light');
+
+                    setTimeout(() => {
+                        ptrIndicator.style.transform = `translateY(-100%)`;
+                        isRefreshing = false;
+                        setTimeout(() => {
+                            document.getElementById('ptr-text').innerText = "Pull to refresh";
+                        }, 300);
+                    }, 500);
+                }, 800);
+            } else if (ptrIndicator) {
+                ptrIndicator.style.transform = `translateY(-100%)`;
+            }
+            touchStartY = 0;
+        }
+    });
 });
 
 // Update the main header title and subtitle dynamically
@@ -920,6 +986,38 @@ async function exportRoutineToImage() {
     }
 }
 
+// PDF Export logic using html2canvas + jsPDF
+async function exportRoutineToPDF() {
+    const container = document.getElementById('weekly-grid-container');
+    if (!container) return;
+    if (typeof window.jspdf === 'undefined') {
+        alert("PDF export library not loaded yet. Try again in a moment.");
+        return;
+    }
+
+    try {
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            backgroundColor: document.documentElement.classList.contains('dark') ? '#121212' : '#FDFBF7',
+            logging: false,
+            useCORS: true
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new window.jspdf.jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Routine_${activeRoutineId}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+        console.error("Failed to export routine to PDF:", error);
+        alert("Failed to generate PDF.");
+    }
+}
+
 function openUserSettingsModal() {
     // Update alert buttons UI
     const alerts = [5, 10, 15];
@@ -1211,8 +1309,26 @@ function resetPomodoro() {
 // 3. To-Do / Deadline Tracker
 let todosData = JSON.parse(localStorage.getItem('todos_v1') || '[]');
 
+// ToDo Drag and Drop state
+let dragStartIndex = null;
+
 function saveTodos() {
     localStorage.setItem('todos_v1', JSON.stringify(todosData));
+}
+
+function populateTodoCourseDropdown() {
+    const select = document.getElementById('todo-course');
+    if (!select || !currentRoutine) return;
+    select.innerHTML = '<option value="">No Course</option>';
+
+    const uniqueCourses = new Set();
+    Object.values(currentRoutine.data).forEach(dayClasses => {
+        dayClasses.forEach(cls => uniqueCourses.add(cls.code));
+    });
+
+    Array.from(uniqueCourses).sort().forEach(code => {
+        select.innerHTML += `<option value="${code}">${code}</option>`;
+    });
 }
 
 function renderTodos() {
@@ -1220,17 +1336,25 @@ function renderTodos() {
     if (!list) return;
     list.innerHTML = '';
 
+    populateTodoCourseDropdown();
+
     if (todosData.length === 0) {
         list.innerHTML = `<li class="text-xs text-cream-muted dark:text-charcoal-muted text-center py-4">No pending tasks.</li>`;
         return;
     }
 
     todosData.forEach((todo, index) => {
+        const badgeHtml = todo.course ? `<span class="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">${todo.course}</span>` : '';
+        const deadlineHtml = todo.deadline ? `<span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold ml-1">${todo.deadline}</span>` : '';
+
         list.innerHTML += `
-            <li class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-lg border border-cream-border/50 dark:border-charcoal-border/50 transition">
-                <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${index})" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                <span class="text-xs flex-1 text-cream-text dark:text-charcoal-text font-medium ${todo.done ? 'line-through text-cream-muted dark:text-charcoal-muted' : ''}">${todo.text}</span>
-                <button onclick="deleteTodo(${index})" class="text-neutral-400 hover:text-rose-500 transition">
+            <li draggable="true" ondragstart="todoDragStart(event, ${index})" ondragover="todoDragOver(event)" ondrop="todoDrop(event, ${index})" class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-lg border border-cream-border/50 dark:border-charcoal-border/50 transition cursor-grab active:cursor-grabbing">
+                <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${index})" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0">
+                <div class="flex-1 flex flex-col justify-center min-w-0">
+                    <span class="text-xs text-cream-text dark:text-charcoal-text font-medium truncate ${todo.done ? 'line-through text-cream-muted dark:text-charcoal-muted' : ''}">${todo.text}</span>
+                    ${(todo.course || todo.deadline) ? `<div class="flex items-center gap-1 mt-0.5">${badgeHtml}${deadlineHtml}</div>` : ''}
+                </div>
+                <button onclick="deleteTodo(${index})" class="text-neutral-400 hover:text-rose-500 transition shrink-0 p-1">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </li>
@@ -1238,14 +1362,51 @@ function renderTodos() {
     });
 }
 
+// Drag and Drop Handlers for ToDos
+window.todoDragStart = function(event, index) {
+    dragStartIndex = index;
+    event.dataTransfer.effectAllowed = 'move';
+};
+
+window.todoDragOver = function(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+};
+
+window.todoDrop = function(event, dropIndex) {
+    event.preventDefault();
+    if (dragStartIndex === null || dragStartIndex === dropIndex) return;
+
+    // Swap array items
+    const draggedItem = todosData[dragStartIndex];
+    todosData.splice(dragStartIndex, 1);
+    todosData.splice(dropIndex, 0, draggedItem);
+
+    saveTodos();
+    renderTodos();
+    dragStartIndex = null;
+    triggerHaptic('light');
+};
+
 function addTodo() {
     const input = document.getElementById('todo-input');
+    const courseInput = document.getElementById('todo-course');
+    const deadlineInput = document.getElementById('todo-deadline');
+
     const text = input.value.trim();
     if (text) {
-        todosData.push({ text, done: false });
+        todosData.push({
+            text,
+            course: courseInput.value,
+            deadline: deadlineInput.value,
+            done: false
+        });
         saveTodos();
         renderTodos();
         input.value = '';
+        courseInput.value = '';
+        deadlineInput.value = '';
+        triggerHaptic('light');
     }
 }
 
@@ -2005,7 +2166,7 @@ function checkUpcomingClassAlerts() {
     });
 }
 
-// Display the PWA installation promotion banner
+// Display the full-screen PWA installation promotion modal
 function showPwaBanner(platform) {
     if (sessionStorage.getItem('pwa_banner_dismissed') === 'true') return;
 
@@ -2015,7 +2176,7 @@ function showPwaBanner(platform) {
     if (!banner || !desc || !btn) return;
 
     if (platform === 'ios') {
-        desc.innerText = "Please open this page in Safari, tap the Share icon (at the bottom), and select 'Add to Home Screen' for offline access and alerts.";
+        desc.innerText = "Open this page in Safari, tap the Share icon, and select 'Add to Home Screen' for blazing-fast offline access and notifications.";
         btn.classList.add('hidden'); // Programmatic triggers not supported on iOS Safari
     } else {
         btn.classList.remove('hidden');
@@ -2037,11 +2198,11 @@ function showPwaBanner(platform) {
         });
     }
 
-    // Slide up animation
+    // Slide up full-screen animation
     banner.classList.remove('hidden');
     banner.offsetHeight; // Force layout reflow
-    banner.classList.remove('opacity-0', 'translate-y-8');
-    banner.classList.add('opacity-100', 'translate-y-0');
+    banner.classList.remove('translate-y-full');
+    banner.classList.add('translate-y-0');
 }
 
 // Slide down and dismiss the PWA promotion banner
@@ -2049,11 +2210,11 @@ function dismissPwaBanner() {
     const banner = document.getElementById('pwa-install-banner');
     if (!banner) return;
     
-    banner.classList.remove('opacity-100', 'translate-y-0');
-    banner.classList.add('opacity-0', 'translate-y-8');
+    banner.classList.remove('translate-y-0');
+    banner.classList.add('translate-y-full');
     setTimeout(() => {
         banner.classList.add('hidden');
-    }, 300);
+    }, 500);
     
     sessionStorage.setItem('pwa_banner_dismissed', 'true');
 }
