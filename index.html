@@ -163,7 +163,7 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-bold">Student Dashboard</h3>
-                        <p class="text-[11px] font-medium text-emerald-100 dark:text-emerald-300 mt-0.5">Focus Timer, To-Do, CGPA & Stats</p>
+                        <p class="text-[11px] font-medium text-emerald-100 dark:text-emerald-300 mt-0.5">To-Do, Overrides Focus Timer, To-Do, CGPA & Stats Stats</p>
                     </div>
                 </div>
                 <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
@@ -205,7 +205,7 @@
             <div class="flex gap-3 mt-2">
                 <button onclick="exportRoutineToImage()" class="flex-1 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Export Image
+                    Export as PNG
                 </button>
                 <button onclick="exportRoutineToPDF()" class="flex-1 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -229,156 +229,97 @@
                 </div>
             </div>
 
-            <!-- Dashboard Grid Layout -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <!-- Pomodoro Timer Module -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm">
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-rose-500">🍅</span>
-                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Focus Timer</h3>
-                    </div>
-                    <div class="text-center mb-6">
-                        <div id="pomodoro-time" class="text-5xl font-extrabold text-neutral-800 dark:text-neutral-100 tabular-nums tracking-tighter">25:00</div>
-                        <div id="pomodoro-status" class="text-[10px] font-bold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted mt-2">Ready to Focus</div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button id="btn-pomodoro-start" onclick="startPomodoro()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Start</button>
-                        <button id="btn-pomodoro-pause" onclick="pausePomodoro()" class="hidden flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-lg transition shadow-sm">Pause</button>
-                        <button onclick="resetPomodoro()" class="px-4 py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-xs font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">Reset</button>
+            <!-- Dashboard Primary Layout (Assignments & Deadlines) -->
+            <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 md:p-6 shadow-sm flex flex-col mb-6 w-full md:col-span-2">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                    <div class="flex items-center gap-2">
+                        <div class="p-1.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg text-emerald-600 dark:text-emerald-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-extrabold text-cream-text dark:text-charcoal-text leading-tight">Deadlines & Tasks</h3>
+                            <p class="text-[11px] text-cream-muted dark:text-charcoal-muted font-medium mt-0.5">Manage assignments and upcoming quizzes</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Assignment / Deadline To-Do Module -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm flex flex-col h-[320px]">
-                    <div class="flex items-center justify-between mb-4 shrink-0">
-                        <div class="flex items-center gap-2">
-                            <span class="text-indigo-500">📝</span>
-                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Deadlines & Tasks</h3>
-                        </div>
-                    </div>
-                    <div class="flex flex-col gap-2 mb-4 shrink-0">
-                        <input type="text" id="todo-input" placeholder="Task description..." class="w-full px-3 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
-                        <div class="flex gap-2">
-                            <select id="todo-course" class="flex-1 px-2 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text focus:outline-none">
+                <!-- Redesigned ToDo Input Area -->
+                <div class="bg-neutral-50/50 dark:bg-neutral-900/30 border border-cream-border/60 dark:border-charcoal-border/50 rounded-xl p-4 mb-6">
+                    <div class="flex flex-col md:flex-row gap-3">
+                        <input type="text" id="todo-input" placeholder="What needs to be done?" class="flex-grow px-3 py-2.5 text-sm font-medium rounded-lg border border-cream-border dark:border-charcoal-border bg-white dark:bg-charcoal-card text-cream-text dark:text-charcoal-text placeholder-neutral-400 dark:placeholder-neutral-500 focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-500 transition shadow-sm">
+                        <div class="flex gap-3">
+                            <select id="todo-course" class="w-28 md:w-32 px-2 py-2.5 text-xs font-bold uppercase tracking-wider rounded-lg border border-cream-border dark:border-charcoal-border bg-white dark:bg-charcoal-card text-cream-text dark:text-charcoal-text focus:outline-none focus:border-emerald-500 transition shadow-sm cursor-pointer">
                                 <option value="">No Course</option>
                                 <!-- Courses injected here -->
                             </select>
-                            <input type="date" id="todo-deadline" class="flex-1 px-2 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text focus:outline-none">
-                            <button onclick="addTodo()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Add</button>
+                            <input type="date" id="todo-deadline" class="w-32 md:w-36 px-2 py-2.5 text-xs font-bold rounded-lg border border-cream-border dark:border-charcoal-border bg-white dark:bg-charcoal-card text-cream-muted dark:text-charcoal-text focus:outline-none focus:border-emerald-500 transition shadow-sm cursor-pointer">
+                            <button onclick="addTodo()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white text-sm font-bold rounded-lg transition shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 active:scale-95 shrink-0 flex items-center gap-1.5">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                                Add
+                            </button>
                         </div>
                     </div>
-                    <div class="flex-1 overflow-y-auto pr-1 scrollbar-none">
-                        <ul id="todo-list" class="space-y-2">
-                            <!-- Todos injected here -->
+                </div>
+
+                <div class="flex-1">
+                    <ul id="todo-list" class="space-y-3">
+                        <!-- Todos injected here -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Dashboard Secondary Layout (Overrides & Stats) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <!-- Schedule Overrides Module -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-neutral-500 dark:text-neutral-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </span>
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides</h3>
+                        </div>
+                        <button onclick="shareOverrides()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50 flex items-center gap-1.5">
+                            Sync / Share
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-cream-muted dark:text-charcoal-muted font-medium mb-4">Inject a makeup class for a specific date.</p>
+
+                    <div class="bg-neutral-50/50 dark:bg-neutral-900/30 p-3 rounded-xl border border-cream-border/60 dark:border-charcoal-border/50 mb-4 flex flex-col gap-3">
+                        <div class="flex gap-2">
+                            <input type="date" id="override-date" class="w-[45%] px-2 py-2 text-[10px] font-bold rounded border border-cream-border dark:border-charcoal-border bg-white dark:bg-charcoal-card text-cream-muted dark:text-charcoal-text focus:outline-none focus:border-emerald-500">
+                            <input type="text" id="override-code" placeholder="Course Code" class="w-[55%] px-2 py-2 text-[10px] font-bold uppercase rounded border border-cream-border dark:border-charcoal-border bg-white dark:bg-charcoal-card text-cream-text dark:text-charcoal-text focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="override-time" placeholder="08:50 AM - 09:40 AM" class="flex-grow px-2 py-2 text-[10px] font-bold rounded border border-cream-border dark:border-charcoal-border bg-white dark:bg-charcoal-card text-cream-text dark:text-charcoal-text focus:outline-none focus:border-emerald-500">
+                            <button onclick="addOverride()" class="px-4 py-2 bg-neutral-800 dark:bg-neutral-200 hover:bg-neutral-900 dark:hover:bg-white text-white dark:text-neutral-900 text-[10px] font-bold rounded transition shadow-sm">Save</button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto max-h-40 scrollbar-none">
+                        <ul id="overrides-list" class="space-y-2 text-xs">
+                            <!-- Overrides injected here -->
                         </ul>
                     </div>
                 </div>
 
-                <!-- CGPA Estimator Module -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
+                <!-- Attendance Stats Module -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm flex flex-col">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-2">
-                            <span class="text-blue-500">🎓</span>
-                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">CGPA Estimator</h3>
-                        </div>
-                        <div class="text-right">
-                            <p class="text-[10px] font-bold uppercase tracking-wider text-cream-muted dark:text-charcoal-muted">Est. CGPA</p>
-                            <p id="cgpa-result" class="text-xl font-extrabold text-blue-600 dark:text-blue-400 leading-none">0.00</p>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
-                            <thead>
-                                <tr class="border-b border-cream-border dark:border-charcoal-border">
-                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted">Course Code</th>
-                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted w-20">Credits</th>
-                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted w-24">Target Grade</th>
-                                    <th class="pb-2 text-[10px] font-bold uppercase text-cream-muted dark:text-charcoal-muted w-10"></th>
-                                </tr>
-                            </thead>
-                            <tbody id="cgpa-list" class="divide-y divide-cream-border/60 dark:divide-charcoal-border/50 text-xs">
-                                <!-- CGPA items injected here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <button onclick="addCgpaCourse()" class="mt-4 w-full py-2 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[11px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50 border-dashed">
-                        + Add Course Entry
-                    </button>
-                </div>
-
-                <!-- Schedule Overrides (Makeup Classes) Module -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-amber-500">📅</span>
-                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides</h3>
-                        </div>
-                        <button onclick="shareOverrides()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">
-                            Sync / Share
-                        </button>
-                    </div>
-                    <p class="text-[11px] text-cream-muted dark:text-charcoal-muted font-medium mb-4">Add a makeup class for a specific date. This overrides the live tracking banner.</p>
-
-                    <div class="flex flex-wrap gap-2 mb-4 items-end">
-                        <div class="flex-1 min-w-[120px]">
-                            <label class="block text-[10px] font-bold mb-1 text-cream-muted dark:text-charcoal-muted">Date (YYYY-MM-DD)</label>
-                            <input type="date" id="override-date" class="w-full px-2 py-1.5 text-xs rounded border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text">
-                        </div>
-                        <div class="w-24">
-                            <label class="block text-[10px] font-bold mb-1 text-cream-muted dark:text-charcoal-muted">Code</label>
-                            <input type="text" id="override-code" placeholder="e.g. ECE 2101" class="w-full px-2 py-1.5 text-xs rounded border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text">
-                        </div>
-                        <div class="w-32">
-                            <label class="block text-[10px] font-bold mb-1 text-cream-muted dark:text-charcoal-muted">Time Range</label>
-                            <input type="text" id="override-time" placeholder="08:50 AM - 09:40 AM" class="w-full px-2 py-1.5 text-xs rounded border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text">
-                        </div>
-                        <button onclick="addOverride()" class="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded shadow-sm">Save</button>
-                    </div>
-
-                    <ul id="overrides-list" class="space-y-2 text-xs">
-                        <!-- Overrides injected here -->
-                    </ul>
-                </div>
-
-                <!-- Pomodoro Analytics Heatmap -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-rose-400">🔥</span>
-                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Focus Heatmap</h3>
-                    </div>
-                    <div id="heatmap-container" class="flex gap-1 overflow-x-auto scrollbar-none pb-2">
-                        <!-- Heatmap cells injected dynamically -->
-                    </div>
-                    <div class="flex justify-between items-center mt-2 text-[10px] font-medium text-cream-muted dark:text-charcoal-muted">
-                        <span>Last 30 Days</span>
-                        <span class="flex items-center gap-1">
-                            Less
-                            <span class="w-2.5 h-2.5 rounded-sm bg-neutral-100 dark:bg-neutral-800"></span>
-                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-200 dark:bg-emerald-900/40"></span>
-                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 dark:bg-emerald-700/60"></span>
-                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600 dark:bg-emerald-500"></span>
-                            More
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Attendance Stats List (Moved from Modal) -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
-                            <span class="text-emerald-500">📊</span>
+                            <span class="text-emerald-500">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </span>
                             <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Attendance Analytics</h3>
                         </div>
-                        <button onclick="exportAttendanceToCSV()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">
+                        <button onclick="exportAttendanceToCSV()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50 flex items-center gap-1.5">
                             Export CSV
                         </button>
                     </div>
-                    <div id="dashboard-stats-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div id="dashboard-stats-list" class="flex flex-col gap-3 overflow-y-auto max-h-[220px] scrollbar-none pr-1">
                         <!-- Stats injected here -->
                     </div>
                 </div>
-
             </div>
         </div>
 
