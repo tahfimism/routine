@@ -85,6 +85,14 @@ It is designed to feel like a premium utility app: minimal clutter, highly optim
   - Toggling daily tabs or view modes triggers a smooth CSS fade-in animation, utilizing a browser reflow trick to restart the transition dynamically on every click.
 - **Escape Key Dismissal**:
   - Pressing the `Escape` key on a keyboard instantly dismisses any active detail or settings modals.
+- **Student Dashboard**: A dedicated off-canvas panel for secondary features (To-Do List, Schedule Overrides, Attendance Stats) keeping the main feed clean.
+- **Schedule Overrides**: Frontend-only override sharing using base64 encoded JSON injected into URLs and QR Codes (via qrcode.js).
+- **Swipe Gestures**: Mobile navigation powered by Hammer.js.
+
+### 2.10 Export Capabilities
+- **Image Export**: Utilizes html2canvas to capture and download the routine view.
+- **PDF Export**: Utilizes jsPDF to generate a document version of the routine.
+- **Calendar Sync**: Button to export routine data to native device calendars for reliable offline alerts on restrictive OS environments.
 
 ---
 
@@ -105,3 +113,168 @@ The dashboard supports dynamic contrast icons:
   - *On Desktop*: Automatically shifts back to a single row (Title and Logo on the left, controls on the right).
 - **Transitions**: CSS transitions are defined globally on background, colors, and layout shifts (250ms duration) to smooth switching between dark mode, routines, and views.
 - **Typographic System**: Utilizes the premium Google Font `Inter` with varying font weights (`font-light` to `font-extrabold`) for clear content hierarchy.
+
+---
+
+## 5. Mono-repo / Sub-project Breakdown
+
+While this repository is a unified vanilla web application without a build process, its architecture is distinctly modularized into functional sub-components:
+
+### 5.1 `js/data.js` (Routine Registry & Data Layer)
+- **Purpose**: Serves as the central data registry for all available class routines.
+- **Tech Stack**: Vanilla JavaScript (Static Objects).
+- **Features**: Contains nested JSON-like structures defining routines (e.g., "ece21", "ll"). Each routine object encapsulates:
+  - Header metadata (Name, Subtitle).
+  - `teacherDirectory`: A key-value mapping resolving acronyms to full instructor names.
+  - `palette`: Custom UI color overrides for light mode (e.g., ECE Default Cream vs. EWU Lavender).
+  - `data`: A structured weekly calendar (Sunday to Thursday) mapping days to arrays of class objects (time, code, name, type, instructors, room, period).
+- **Interaction**: Accessed globally by `js/app.js` to dynamically render the UI based on the active routine selected by the user.
+
+### 5.2 `js/app.js` (Core Application Logic Layer)
+- **Purpose**: The engine of the dashboard. Handles DOM manipulation, real-time calculations, state management, and event handling.
+- **Tech Stack**: Vanilla JavaScript (ES6+), localStorage API.
+- **Features**:
+  - URL Query Parameter parsing (`?r=routineId`) to switch active routines dynamically.
+  - Real-time time parsing, tracking, and countdown logic via `setInterval`.
+  - PWA install prompt interception and custom UI rendering.
+  - Notification scheduling logic interacting with the Service Worker.
+  - State persistence handling (Attendance stats, Todos, Schedule Overrides).
+- **Interaction**: Pulls data from `data.js`, reads/writes to `localStorage`, and triggers the UI updates in `index.html`.
+
+### 5.3 `sw.js` (Service Worker & Background Processes)
+- **Purpose**: Manages offline capabilities, asset caching, and background push notifications.
+- **Tech Stack**: Service Worker API, Cache API, Notification API.
+- **Features**:
+  - Caches all critical assets (`index.html`, CSS, JS, SVGs/PNGs) on install.
+  - Implements a "Network-First, falling back to Cache" strategy.
+  - Listens for `notificationclick` events to focus or reopen the app when an alert is tapped.
+- **Interaction**: Intercepts fetch requests from the main thread to serve cached assets when offline.
+
+### 5.4 `index.html` & `css/style.css` (Presentation Layer)
+- **Purpose**: The user interface and structural markup.
+- **Tech Stack**: HTML5, Tailwind CSS (via CDN), custom vanilla CSS for specific transitions.
+- **Features**:
+  - Responsive, mobile-first grid and flexbox layouts.
+  - Hidden modals and dashboards (Student Dashboard, Settings, Details) styled with Tailwind utility classes.
+  - CSS variables for dynamic theming (Dark Mode and Light Mode overrides).
+
+---
+
+## 6. Technical Architecture & Tech Stack
+
+**Languages & Core Tech**: HTML5, CSS3, ES6+ JavaScript.
+**Frameworks/Libraries**:
+- **Tailwind CSS (via CDN)**: For rapid utility-first styling without a build step.
+- **html2canvas**: DOM to Image rendering.
+- **jsPDF**: Client-side PDF generation.
+- **qrcode.js**: Client-side QR code generation for sharing overrides.
+- **Hammer.js**: Touch gesture recognition.
+
+**Overarching Architecture**:
+- **Client-Side SPA / PWA**: The application is entirely client-side. There is zero backend server, database, or API dependency.
+- **State Management**: Heavily utilizes the browser's synchronous `localStorage` for persisting settings (active routine, vacation mode, alert times, attendance data, todos, overrides).
+- **Data Structure**: Static JSON-like object registry (`data.js`) injected into the global scope.
+- **Event-Driven UI**: Core functions are attached to the global `window` object to allow inline HTML `onclick` and `onchange` event listeners.
+
+---
+
+## 7. Under-the-Hood Optimizations
+
+- **Network-First Caching Strategy**: Ensures users always get the latest routine updates when online, but guarantees instantaneous loads and functionality when entirely offline.
+- **Reflow Trick for Animations**: Uses `void element.offsetWidth` in JavaScript to force a browser reflow, allowing CSS transitions to restart cleanly when switching tabs.
+- **Zero Build-Step Setup**: Bypassing Node.js, npm, or Webpack reduces complexity and allows immediate deployment on any basic static file host (e.g., GitHub Pages).
+- **Monochrome PWA Badges**: Custom `badge_monochrome.svg` ensures Android status bar notifications render correctly instead of showing as solid white squares.
+- **Memory Management**: The notification tracking registry (`sentNotifications`) automatically purges keys from previous days on load, preventing `localStorage` memory bloat over time.
+- **DOM Minimization**: Heavy details (like full teacher names, room numbers) are not redundantly rendered in the DOM; they are dynamically injected into a single reusable modal instance upon user interaction.
+
+---
+
+## 8. Setup & Installation Instructions
+
+Because this repository operates entirely without a backend or build process, setting it up locally is instantaneous.
+
+### Prerequisites
+- A modern web browser.
+- A local web server (e.g., Python, Node `http-server`, or VS Code Live Server).
+
+### Environment Variables
+*(None required. The app is completely static and frontend-only.)*
+
+### Step-by-Step Execution
+
+1. **Clone the repository**:
+   ```bash
+   git clone <repository-url>
+   cd <repository-directory>
+   ```
+
+2. **Run a static file server**:
+   Since Service Workers and ES6 Modules (if used in future) require a secure context or localhost, you must serve the files over HTTP rather than opening `index.html` directly from the filesystem.
+
+   *Using Python 3:*
+   ```bash
+   python3 -m http.server 8000
+   ```
+
+   *Using Node (npx):*
+   ```bash
+   npx http-server -p 8000
+   ```
+
+3. **Access the application**:
+   Open your browser and navigate to:
+   ```
+   http://localhost:8000
+   ```
+
+---
+
+## 9. Usage Examples
+
+### 1. Loading a Specific Routine via URL
+To force the dashboard to load the East West University (DSA) routine, append the `?r=` query parameter:
+```
+http://localhost:8000/?r=ll
+```
+The app will read the parameter, cache `ll` as the active routine, and rewrite the URL cleanly back to `http://localhost:8000/`.
+
+### 2. Adding a Custom Routine in `data.js`
+You can extend the application by appending a new object to the `routines` registry:
+
+```javascript
+const routines = {
+    // ... existing routines
+    "cs101": {
+        "id": "cs101",
+        "name": "CS 101 Basics",
+        "subtitle": "Tech University",
+        "teacherDirectory": {
+            "JD": "Prof. John Doe"
+        },
+        "palette": {
+            "bg": "#f0fdf4",
+            "card": "#ffffff",
+            "border": "#bbf7d0",
+            "text": "#166534",
+            "muted": "#15803d"
+        },
+        "data": {
+            "Mon": [
+                {
+                    "time": "09:00 AM – 10:30 AM",
+                    "code": "CS101",
+                    "name": "Introduction to CS",
+                    "type": "Theory",
+                    "instructors": ["JD"],
+                    "room": "Room 304",
+                    "period": "1st Period"
+                }
+            ]
+        }
+    }
+};
+```
+Then load it via: `http://localhost:8000/?r=cs101`.
+
+### 3. Forcing the Hidden Settings Panel
+In the UI, rapidly click the large Header Title (e.g., "ECE 2-1 (KUET)") **three times** within 1 second. This fires the Easter-Egg trigger, revealing the internal settings menu to switch active routines without using URL parameters.
