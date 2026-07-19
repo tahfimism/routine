@@ -1,23 +1,29 @@
-# Improvement Audit v3
+# Improvement Audit v5
 
-*Note: Previous improvements (Student Dashboard, CGPA Estimator, ToDo Tracker, Pomodoro Timer, Schedule Overrides, Export to Image) have been successfully implemented.*
+*Note: Previous improvements (QR Sharing/Sync, Pomodoro Heatmap, Dashboard Restructuring, Swipe Gestures, Override Validation, Context Menus, Haptics) have been successfully implemented.*
 
-## 1. AI Schedule Generator (On-Device)
-- **Improvement:** Integrate a lightweight, on-device AI model (e.g., using WebNN or ONNX runtime for web) to suggest personalized study schedules based on the user's routine, deadlines, and Pomodoro history.
-- **Reasoning:** Taking productivity to the next level without a backend. By analyzing when a student is most active and their upcoming deadlines, the browser can generate a dynamic, suggested daily study plan.
+## Core & Next-Level Productivity
+1. **AI Schedule Generator (On-Device)**: Use WebNN/ONNX runtime to suggest personalized daily study plans based on Pomodoro history and To-Do deadlines.
+2. **Offline Course Materials Vault**: Let users upload PDF/text notes into IndexedDB, linking them to specific course cards for offline viewing.
+3. **Routine Analytics & Heatmap v2**: Add deep statistical breakdowns (e.g., "Most productive day", "Average CGPA drift") powered by Chart.js.
+4. **Geolocation Auto-Mute**: Use Geolocation API to detect if the student is off-campus and auto-suppress class start notifications.
+5. **Dynamic Ambient Dark Mode**: Use Canvas API to extract dominant branding colors from routine datasets and create customized, desaturated OLED dark themes.
 
-## 2. WebRTC Peer-to-Peer Routine Sync
-- **Improvement:** Implement WebRTC to allow students to "bump" phones or share a local QR code to sync their schedule overrides (makeup classes) directly with classmates without a server.
-- **Reasoning:** Since makeup classes are stored locally in `localStorage`, sharing them manually is tedious. WebRTC allows instant, offline-first sharing of overrides between peers in the same classroom.
+## UX & Micro-Interactions
+6. **Drag-and-Drop ToDos**: Allow users to reorder their tasks in the Student Dashboard using the native HTML5 drag-and-drop API.
+7. **PWA Install Promotion Redesign**: Replace the generic PWA install banner with an animated, full-screen onboarding walkthrough mimicking native iOS apps.
+8. **Double-Tap to Like/Save Note**: Add Instagram-style double-tap gestures on Class Cards to instantly pop open the Personal Notes area.
+9. **Dynamic Favicon Status**: Change the browser tab Favicon dynamically (e.g., red circle when a class is ongoing, green check when done).
+10. **Sound Effects for Pomodoro**: Add very subtle, premium sound effects (via Web Audio API) for starting/stopping the timer and finishing a session.
+11. **Pull-to-Refresh Sync**: On mobile, add a pull-to-refresh gesture at the top of the feed to immediately trigger a sync check for updated overrides.
+12. **Confetti on Perfect Attendance**: Fire a canvas-based confetti animation when a user achieves 100% attendance in a course over 30 days.
 
-## 3. Geolocation Auto-Mute
-- **Improvement:** Utilize the Geolocation API to detect when a student is physically outside the university campus (e.g., at home or traveling) and automatically suppress class push notifications.
-- **Reasoning:** If a student skips class and stays home, they likely don't want their phone buzzing every hour telling them a class is starting. A local geofence check before triggering the ServiceWorker notification solves this elegantly.
-
-## 4. Dynamic Ambient Dark Mode
-- **Improvement:** Move beyond a simple static `#121212` dark mode. Use the browser's Canvas API to extract the dominant colors from the current routine's branding (e.g., the EWU logo or DSA color palette) and create a highly desaturated, ambient dark mode background specifically tailored to that routine.
-- **Reasoning:** Enhances the premium feel of the application. It provides a subtle, customized aesthetic for each routine while still preserving the battery-saving properties of OLED dark themes.
-
-## 5. Routine Analytics & Heatmap
-- **Improvement:** Build a GitHub-style contribution heatmap in the Student Dashboard that visualizes the user's Pomodoro focus time and Attendance records over the entire semester.
-- **Reasoning:** Visualizing consistency is highly motivating for students. A calendar heatmap rendering locally via D3.js or a simple CSS grid provides immediate visual feedback on their academic dedication.
+## Accessibility & Utility
+13. **Screen Reader (ARIA) Overhaul**: Systematically review all generated HTML elements and enforce strict ARIA labels, live regions, and semantic roles for vision-impaired users.
+14. **High-Contrast "Sunny Day" Mode**: Add a third theme option designed specifically for extreme outdoor glare (pure white background, pure black text, thickened borders).
+15. **Offline Export to PDF**: Expand the `html2canvas` image export to generate a multipage PDF syllabus using `jsPDF`.
+16. **Pomodoro Tagging**: Allow users to tag their Pomodoro sessions with specific course codes so they can see which subjects they spend the most time studying.
+17. **Routine Search Bar**: Add a fast, fuzzy-search input field at the top of the feed to instantly filter the daily list by course code or teacher name.
+18. **Custom Break Timers**: Allow users to customize not just the class alert times, but the Pomodoro break duration (e.g., 5 min vs 15 min).
+19. **Battery-Saver Mode**: Introduce a setting that disables all `setInterval` UI polling, live progress bars, and CSS animations to preserve phone battery.
+20. **Teacher Directory Explorer**: Create a standalone view in the dashboard that lists all teacher acronyms and full names with mailto: links (if available).

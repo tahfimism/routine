@@ -130,6 +130,34 @@ function markAttendance(courseCode, dateStr, status) {
 window.addEventListener('DOMContentLoaded', () => {
     // Check if query parameter 'r' is present and matches a valid routine id
     const urlParams = new URLSearchParams(window.location.search);
+
+    // Check for incoming overrides sync data
+    const syncParam = urlParams.get('import_overrides');
+    if (syncParam) {
+        try {
+            const importedData = JSON.parse(decodeURIComponent(atob(syncParam)));
+            const confirmImport = confirm(`Import ${Object.keys(importedData).length} days of schedule overrides?`);
+            if (confirmImport) {
+                // Merge into current routine's overrides
+                const currentRoutineId = localStorage.getItem('active_routine_id') || 'ece21';
+                if (!overridesData[currentRoutineId]) overridesData[currentRoutineId] = {};
+
+                for (const date in importedData) {
+                    overridesData[currentRoutineId][date] = importedData[date];
+                }
+                saveOverrides();
+                alert('Overrides successfully imported!');
+            }
+
+            // Clean URL
+            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (urlParams.get('r') ? `?r=${urlParams.get('r')}` : '');
+            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+        } catch (e) {
+            console.error("Failed to parse imported overrides", e);
+            alert("Invalid sync link.");
+        }
+    }
+
     const rParam = urlParams.get('r');
     
     const routinesList = Object.values(routines);
@@ -183,6 +211,7 @@ window.addEventListener('DOMContentLoaded', () => {
             closeModal();
             closeSettingsModal();
             closeUserSettingsModal();
+            closeShareOverridesModal();
         }
     });
 
@@ -254,6 +283,98 @@ window.addEventListener('DOMContentLoaded', () => {
         showPwaBanner('ios');
         if (footerInstallBtn) footerInstallBtn.classList.remove('hidden');
     }
+
+    // Initialize Swipe Gestures on Daily View
+    const dailyView = document.getElementById('daily-view-section');
+    if (dailyView && typeof Hammer !== 'undefined') {
+        const mc = new Hammer(dailyView);
+        mc.on("swipeleft swiperight", (ev) => {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+            let currentIndex = days.indexOf(currentDayTab);
+            if (currentIndex === -1) return;
+
+            if (ev.type === "swipeleft" && currentIndex < days.length - 1) {
+                switchTab(days[currentIndex + 1]);
+            } else if (ev.type === "swiperight" && currentIndex > 0) {
+                switchTab(days[currentIndex - 1]);
+            }
+        });
+    }
+
+    // Global click listener to hide context menu
+    document.addEventListener('click', (e) => {
+        const menu = document.getElementById('custom-context-menu');
+        if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            menu.classList.remove('opacity-100', 'scale-100');
+        }
+    });
+
+    // Pull to Refresh Logic
+    let touchStartY = 0;
+    let ptrIndicator = document.getElementById('ptr-indicator');
+    let ptrIcon = document.getElementById('ptr-icon');
+    let isRefreshing = false;
+
+    document.addEventListener('touchstart', e => {
+        if (window.scrollY === 0 && !isRefreshing) {
+            touchStartY = e.touches[0].clientY;
+        }
+    }, {passive: true});
+
+    document.addEventListener('touchmove', e => {
+        if (window.scrollY === 0 && !isRefreshing && touchStartY > 0) {
+            const touchY = e.touches[0].clientY;
+            const pullDistance = touchY - touchStartY;
+
+            if (pullDistance > 0 && ptrIndicator) {
+                const translateY = Math.min(pullDistance - 64, 20); // max pull visual limit
+                ptrIndicator.style.transform = `translateY(${translateY}px)`;
+
+                if (pullDistance > 80) {
+                    ptrIcon.classList.add('rotate-180');
+                } else {
+                    ptrIcon.classList.remove('rotate-180');
+                }
+            }
+        }
+    }, {passive: true});
+
+    document.addEventListener('touchend', e => {
+        if (window.scrollY === 0 && !isRefreshing && touchStartY > 0) {
+            const touchY = e.changedTouches[0].clientY;
+            const pullDistance = touchY - touchStartY;
+
+            if (pullDistance > 80 && ptrIndicator) {
+                isRefreshing = true;
+                triggerHaptic('heavy');
+                document.getElementById('ptr-text').innerText = "Syncing...";
+                ptrIcon.classList.add('animate-spin');
+
+                // Simulate sync
+                setTimeout(() => {
+                    updateRealTimeStatus();
+                    if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+                    else renderWeeklyGrid();
+
+                    document.getElementById('ptr-text').innerText = "Synced!";
+                    ptrIcon.classList.remove('animate-spin');
+                    triggerHaptic('light');
+
+                    setTimeout(() => {
+                        ptrIndicator.style.transform = `translateY(-100%)`;
+                        isRefreshing = false;
+                        setTimeout(() => {
+                            document.getElementById('ptr-text').innerText = "Pull to refresh";
+                        }, 300);
+                    }, 500);
+                }, 800);
+            } else if (ptrIndicator) {
+                ptrIndicator.style.transform = `translateY(-100%)`;
+            }
+            touchStartY = 0;
+        }
+    });
 });
 
 // Update the main header title and subtitle dynamically
@@ -312,6 +433,7 @@ function setupInitialDay() {
 // Handle Active Tabs rendering
 function switchTab(dayKey) {
     currentDayTab = dayKey;
+    triggerHaptic('light');
     
     // Restart fade-in animation
     const timelineWrapper = document.getElementById('daily-timeline-wrapper');
@@ -612,7 +734,7 @@ function renderDaySchedule(dayKey) {
 
         // Render card layout (displays code + title)
         timeline.innerHTML += `
-            <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" class="schedule-card bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-5 cursor-pointer transition duration-250 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+            <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" oncontextmenu="openContextMenu(event, '${dayKey}', ${index})" class="schedule-card bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-5 cursor-pointer transition duration-250 select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div class="flex items-start gap-3">
                         <div class="mt-1">
@@ -712,7 +834,7 @@ function renderWeeklyGrid() {
 
                 // Render card format: Only displays course code, NO titles, NO room number
                 cardsHtml += `
-                    <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" class="schedule-card shrink-0 w-[130px] md:w-[145px] bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-3 cursor-pointer select-none text-left transition duration-150 flex flex-col justify-between min-h-[85px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+                    <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openClassModal('${dayKey}', ${index}); }" onclick="openClassModal('${dayKey}', ${index})" oncontextmenu="openContextMenu(event, '${dayKey}', ${index})" class="schedule-card shrink-0 w-[130px] md:w-[145px] bg-cream-card dark:bg-charcoal-card border ${cardBorderTheme} rounded-xl p-3 cursor-pointer select-none text-left transition duration-150 flex flex-col justify-between min-h-[85px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
                         <div>
                             <div class="flex items-center justify-between gap-1 mb-1">
                                 <div class="flex items-center gap-1">
@@ -762,6 +884,7 @@ function renderWeeklyGrid() {
 // Switch between Daily view list and Weekly calendar grid
 function toggleViewMode() {
     currentViewMode = (currentViewMode === 'daily') ? 'weekly' : 'daily';
+    triggerHaptic('light');
     
     // Update live banner immediately when toggling views
     updateRealTimeStatus();
@@ -821,6 +944,7 @@ function openStudentDashboard() {
         renderCgpa();
         renderOverrides();
         renderDashboardAttendance();
+        renderHeatmap();
     }
 }
 
@@ -859,6 +983,38 @@ async function exportRoutineToImage() {
     } catch (error) {
         console.error("Failed to export routine to image:", error);
         alert("Failed to generate image.");
+    }
+}
+
+// PDF Export logic using html2canvas + jsPDF
+async function exportRoutineToPDF() {
+    const container = document.getElementById('weekly-grid-container');
+    if (!container) return;
+    if (typeof window.jspdf === 'undefined') {
+        alert("PDF export library not loaded yet. Try again in a moment.");
+        return;
+    }
+
+    try {
+        const canvas = await html2canvas(container, {
+            scale: 2,
+            backgroundColor: document.documentElement.classList.contains('dark') ? '#121212' : '#FDFBF7',
+            logging: false,
+            useCORS: true
+        });
+
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new window.jspdf.jsPDF({
+            orientation: 'landscape',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Routine_${activeRoutineId}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+        console.error("Failed to export routine to PDF:", error);
+        alert("Failed to generate PDF.");
     }
 }
 
@@ -1062,6 +1218,40 @@ function renderDashboardAttendance() {
 }
 
 // 2. Pomodoro Timer
+let pomodoroStats = JSON.parse(localStorage.getItem("pomodoro_stats_v1") || "{}");
+
+function savePomodoroStats(minutes) {
+    const today = new Date().toISOString().split("T")[0];
+    if (!pomodoroStats[today]) pomodoroStats[today] = 0;
+    pomodoroStats[today] += minutes;
+    localStorage.setItem("pomodoro_stats_v1", JSON.stringify(pomodoroStats));
+    renderHeatmap();
+}
+
+function renderHeatmap() {
+    const container = document.getElementById("heatmap-container");
+    if (!container) return;
+    container.innerHTML = "";
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        days.push(d.toISOString().split("T")[0]);
+    }
+    days.forEach(dateStr => {
+        const mins = pomodoroStats[dateStr] || 0;
+        let colorClass = "bg-neutral-100 dark:bg-neutral-800 border border-cream-border dark:border-charcoal-border";
+        if (mins > 0 && mins <= 25) {
+            colorClass = "bg-emerald-200 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-800";
+        } else if (mins > 25 && mins <= 60) {
+            colorClass = "bg-emerald-400 dark:bg-emerald-700/60 border border-emerald-500 dark:border-emerald-600";
+        } else if (mins > 60) {
+            colorClass = "bg-emerald-600 dark:bg-emerald-500 border border-emerald-700 dark:border-emerald-400";
+        }
+        container.innerHTML += `<div class="w-4 h-4 rounded-sm shrink-0 transition-colors ${colorClass}" title="${dateStr}: ${mins} minutes focused"></div>`;
+    });
+}
+
 let pomodoroTimer = null;
 let pomodoroTimeLeft = 25 * 60; // 25 minutes
 let pomodoroIsRunning = false;
@@ -1080,6 +1270,7 @@ function updatePomodoroUI() {
 function startPomodoro() {
     if (pomodoroIsRunning) return;
     pomodoroIsRunning = true;
+    triggerHaptic('light');
     document.getElementById('btn-pomodoro-start').classList.add('hidden');
     document.getElementById('btn-pomodoro-pause').classList.remove('hidden');
     document.getElementById('pomodoro-status').innerText = "Focusing...";
@@ -1092,6 +1283,7 @@ function startPomodoro() {
             clearInterval(pomodoroTimer);
             pomodoroIsRunning = false;
             document.getElementById('pomodoro-status').innerText = "Time's up! Take a break.";
+            savePomodoroStats(25);
             if (notificationsEnabled && Notification.permission === "granted") {
                 showNotification("Pomodoro Complete", { body: "Great job! Take a 5 minute break." });
             }
@@ -1117,8 +1309,26 @@ function resetPomodoro() {
 // 3. To-Do / Deadline Tracker
 let todosData = JSON.parse(localStorage.getItem('todos_v1') || '[]');
 
+// ToDo Drag and Drop state
+let dragStartIndex = null;
+
 function saveTodos() {
     localStorage.setItem('todos_v1', JSON.stringify(todosData));
+}
+
+function populateTodoCourseDropdown() {
+    const select = document.getElementById('todo-course');
+    if (!select || !currentRoutine) return;
+    select.innerHTML = '<option value="">No Course</option>';
+
+    const uniqueCourses = new Set();
+    Object.values(currentRoutine.data).forEach(dayClasses => {
+        dayClasses.forEach(cls => uniqueCourses.add(cls.code));
+    });
+
+    Array.from(uniqueCourses).sort().forEach(code => {
+        select.innerHTML += `<option value="${code}">${code}</option>`;
+    });
 }
 
 function renderTodos() {
@@ -1126,17 +1336,25 @@ function renderTodos() {
     if (!list) return;
     list.innerHTML = '';
 
+    populateTodoCourseDropdown();
+
     if (todosData.length === 0) {
         list.innerHTML = `<li class="text-xs text-cream-muted dark:text-charcoal-muted text-center py-4">No pending tasks.</li>`;
         return;
     }
 
     todosData.forEach((todo, index) => {
+        const badgeHtml = todo.course ? `<span class="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">${todo.course}</span>` : '';
+        const deadlineHtml = todo.deadline ? `<span class="text-[9px] text-amber-600 dark:text-amber-400 font-bold ml-1">${todo.deadline}</span>` : '';
+
         list.innerHTML += `
-            <li class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-lg border border-cream-border/50 dark:border-charcoal-border/50 transition">
-                <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${index})" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                <span class="text-xs flex-1 text-cream-text dark:text-charcoal-text font-medium ${todo.done ? 'line-through text-cream-muted dark:text-charcoal-muted' : ''}">${todo.text}</span>
-                <button onclick="deleteTodo(${index})" class="text-neutral-400 hover:text-rose-500 transition">
+            <li draggable="true" ondragstart="todoDragStart(event, ${index})" ondragover="todoDragOver(event)" ondrop="todoDrop(event, ${index})" class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-lg border border-cream-border/50 dark:border-charcoal-border/50 transition cursor-grab active:cursor-grabbing">
+                <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${index})" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0">
+                <div class="flex-1 flex flex-col justify-center min-w-0">
+                    <span class="text-xs text-cream-text dark:text-charcoal-text font-medium truncate ${todo.done ? 'line-through text-cream-muted dark:text-charcoal-muted' : ''}">${todo.text}</span>
+                    ${(todo.course || todo.deadline) ? `<div class="flex items-center gap-1 mt-0.5">${badgeHtml}${deadlineHtml}</div>` : ''}
+                </div>
+                <button onclick="deleteTodo(${index})" class="text-neutral-400 hover:text-rose-500 transition shrink-0 p-1">
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </li>
@@ -1144,14 +1362,51 @@ function renderTodos() {
     });
 }
 
+// Drag and Drop Handlers for ToDos
+window.todoDragStart = function(event, index) {
+    dragStartIndex = index;
+    event.dataTransfer.effectAllowed = 'move';
+};
+
+window.todoDragOver = function(event) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+};
+
+window.todoDrop = function(event, dropIndex) {
+    event.preventDefault();
+    if (dragStartIndex === null || dragStartIndex === dropIndex) return;
+
+    // Swap array items
+    const draggedItem = todosData[dragStartIndex];
+    todosData.splice(dragStartIndex, 1);
+    todosData.splice(dropIndex, 0, draggedItem);
+
+    saveTodos();
+    renderTodos();
+    dragStartIndex = null;
+    triggerHaptic('light');
+};
+
 function addTodo() {
     const input = document.getElementById('todo-input');
+    const courseInput = document.getElementById('todo-course');
+    const deadlineInput = document.getElementById('todo-deadline');
+
     const text = input.value.trim();
     if (text) {
-        todosData.push({ text, done: false });
+        todosData.push({
+            text,
+            course: courseInput.value,
+            deadline: deadlineInput.value,
+            done: false
+        });
         saveTodos();
         renderTodos();
         input.value = '';
+        courseInput.value = '';
+        deadlineInput.value = '';
+        triggerHaptic('light');
     }
 }
 
@@ -1184,6 +1439,39 @@ function addOverride() {
     if (!dateInput || !codeInput || !timeInput) {
         alert("Please fill in all fields.");
         return;
+    }
+
+    const newRange = parseRange(timeInput);
+    if (!newRange) {
+        alert("Invalid time format. Use something like '08:50 AM - 09:40 AM'");
+        return;
+    }
+
+    // Determine the day key from the date
+    const d = new Date(dateInput);
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayKey = dayMap[d.getDay()];
+
+    // Get effective classes for that day to check overlaps
+    const existingClasses = getEffectiveClassesForDay(dayKey, dateInput);
+
+    // Check overlap
+    let conflict = false;
+    for (const cls of existingClasses) {
+        const clsRange = parseRange(cls.time);
+        if (clsRange) {
+            if ((newRange.startMin >= clsRange.startMin && newRange.startMin < clsRange.endMin) ||
+                (newRange.endMin > clsRange.startMin && newRange.endMin <= clsRange.endMin) ||
+                (newRange.startMin <= clsRange.startMin && newRange.endMin >= clsRange.endMin)) {
+                conflict = true;
+                break;
+            }
+        }
+    }
+
+    if (conflict) {
+        const proceed = confirm("Warning: This makeup class overlaps with an existing class or override. Add anyway?");
+        if (!proceed) return;
     }
 
     if (!overridesData[activeRoutineId]) {
@@ -1229,6 +1517,62 @@ function deleteOverride(date, index) {
         if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
         else renderWeeklyGrid();
     }
+}
+
+function shareOverrides() {
+    const currentOverrides = overridesData[activeRoutineId];
+    if (!currentOverrides || Object.keys(currentOverrides).length === 0) {
+        alert("No overrides exist for the current routine to share.");
+        return;
+    }
+
+    try {
+        const compressedData = btoa(encodeURIComponent(JSON.stringify(currentOverrides)));
+        const baseUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        const shareUrl = `${baseUrl}?r=${activeRoutineId}&import_overrides=${compressedData}`;
+
+        document.getElementById('share-link-input').value = shareUrl;
+
+        // Generate QR
+        const qrContainer = document.getElementById('qrcode-container');
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+            text: shareUrl,
+            width: 128,
+            height: 128,
+            colorDark : "#121212",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.L
+        });
+
+        const modal = document.getElementById('share-overrides-modal');
+        modal.classList.remove('hidden');
+        modal.offsetHeight; // force reflow
+        modal.classList.add('active');
+        document.body.classList.add('overflow-hidden');
+    } catch (e) {
+        console.error("Failed to generate share link", e);
+        alert("Error generating share link.");
+    }
+}
+
+function closeShareOverridesModal() {
+    const modal = document.getElementById('share-overrides-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }, 250);
+}
+
+function copyShareLink() {
+    const input = document.getElementById('share-link-input');
+    input.select();
+    document.execCommand('copy');
+    alert("Link copied!");
 }
 
 function renderOverrides() {
@@ -1528,16 +1872,19 @@ function openClassModal(dayKey, index) {
 
     newBtnPresent.addEventListener('click', () => {
         markAttendance(cls.code, targetDateStr, 'present');
+        triggerHaptic('light');
         updateAttendanceStatsUI();
     });
 
     newBtnAbsent.addEventListener('click', () => {
         markAttendance(cls.code, targetDateStr, 'absent');
+        triggerHaptic('light');
         updateAttendanceStatsUI();
     });
 
     newBtnClear.addEventListener('click', () => {
         markAttendance(cls.code, targetDateStr, null);
+        triggerHaptic('light');
         updateAttendanceStatsUI();
     });
 
@@ -1819,7 +2166,7 @@ function checkUpcomingClassAlerts() {
     });
 }
 
-// Display the PWA installation promotion banner
+// Display the full-screen PWA installation promotion modal
 function showPwaBanner(platform) {
     if (sessionStorage.getItem('pwa_banner_dismissed') === 'true') return;
 
@@ -1829,7 +2176,7 @@ function showPwaBanner(platform) {
     if (!banner || !desc || !btn) return;
 
     if (platform === 'ios') {
-        desc.innerText = "Please open this page in Safari, tap the Share icon (at the bottom), and select 'Add to Home Screen' for offline access and alerts.";
+        desc.innerText = "Open this page in Safari, tap the Share icon, and select 'Add to Home Screen' for blazing-fast offline access and notifications.";
         btn.classList.add('hidden'); // Programmatic triggers not supported on iOS Safari
     } else {
         btn.classList.remove('hidden');
@@ -1851,11 +2198,11 @@ function showPwaBanner(platform) {
         });
     }
 
-    // Slide up animation
+    // Slide up full-screen animation
     banner.classList.remove('hidden');
     banner.offsetHeight; // Force layout reflow
-    banner.classList.remove('opacity-0', 'translate-y-8');
-    banner.classList.add('opacity-100', 'translate-y-0');
+    banner.classList.remove('translate-y-full');
+    banner.classList.add('translate-y-0');
 }
 
 // Slide down and dismiss the PWA promotion banner
@@ -1863,11 +2210,11 @@ function dismissPwaBanner() {
     const banner = document.getElementById('pwa-install-banner');
     if (!banner) return;
     
-    banner.classList.remove('opacity-100', 'translate-y-0');
-    banner.classList.add('opacity-0', 'translate-y-8');
+    banner.classList.remove('translate-y-0');
+    banner.classList.add('translate-y-full');
     setTimeout(() => {
         banner.classList.add('hidden');
-    }, 300);
+    }, 500);
     
     sessionStorage.setItem('pwa_banner_dismissed', 'true');
 }
@@ -2011,4 +2358,71 @@ function exportToCalendar() {
     
     // Provide user instructions
     alert("Calendar file (.ics) generated successfully!\n\nOpen the downloaded file to import your classes and activate 100% reliable background alerts.");
+}
+
+// Context Menu Logic
+let contextMenuTargetClass = null;
+
+function openContextMenu(event, dayKey, index) {
+    event.preventDefault(); // Prevent native right-click
+    if(typeof triggerHaptic === "function") triggerHaptic('heavy');
+
+    contextMenuTargetClass = { dayKey, index };
+
+    const menu = document.getElementById('custom-context-menu');
+    if (!menu) return;
+
+    // Position menu
+    menu.style.left = `${event.clientX}px`;
+    menu.style.top = `${event.clientY}px`;
+
+    menu.classList.remove('hidden');
+    menu.offsetWidth; // Reflow
+    menu.classList.add('opacity-100', 'scale-100');
+}
+
+function contextAction(actionType) {
+    const menu = document.getElementById('custom-context-menu');
+    if (menu) {
+        menu.classList.add('hidden');
+        menu.classList.remove('opacity-100', 'scale-100');
+    }
+
+    if (!contextMenuTargetClass || !currentRoutine) return;
+    const { dayKey, index } = contextMenuTargetClass;
+    const cls = getEffectiveClassesForDay(dayKey)[index];
+    if (!cls) return;
+
+    if (actionType === 'attendance') {
+        const targetDateStr = getDateForDayTab(dayKey);
+        const currentStatus = attendanceData[activeRoutineId]?.[cls.code]?.[targetDateStr];
+        markAttendance(cls.code, targetDateStr, currentStatus === 'present' ? null : 'present');
+        if(typeof triggerHaptic === "function") triggerHaptic('light');
+        if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+    } else if (actionType === 'notes') {
+        openClassModal(dayKey, index);
+        setTimeout(() => {
+            const notesArea = document.getElementById('modal-personal-notes');
+            if (notesArea) notesArea.focus();
+        }, 300);
+    } else if (actionType === 'override') {
+        openStudentDashboard();
+        setTimeout(() => {
+            const dateStr = getDateForDayTab(dayKey);
+            document.getElementById('override-date').value = dateStr;
+            document.getElementById('override-code').value = cls.code;
+            document.getElementById('override-time').value = cls.time;
+            document.getElementById('override-date').focus();
+        }, 100);
+    }
+
+    contextMenuTargetClass = null;
+}
+
+// Helper for Haptic Feedback
+function triggerHaptic(type = 'light') {
+    if (navigator.vibrate) {
+        if (type === 'light') navigator.vibrate(50);
+        else if (type === 'heavy') navigator.vibrate([100, 50, 100]);
+    }
 }

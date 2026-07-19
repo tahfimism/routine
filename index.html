@@ -34,6 +34,15 @@
     <!-- HTML2Canvas CDN for Image Export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
+    <!-- QRCode CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- Hammer.js CDN for Swipe Gestures -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
+
+    <!-- jsPDF CDN for PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -128,11 +137,19 @@
         </div>
     </header>
 
+    <!-- Pull-to-Refresh Indicator -->
+    <div id="ptr-indicator" class="fixed top-0 left-0 right-0 h-16 flex items-center justify-center -translate-y-full transition-transform duration-300 z-50 pointer-events-none">
+        <div class="bg-white dark:bg-charcoal-card rounded-full p-2 shadow-lg border border-cream-border dark:border-charcoal-border flex items-center gap-2">
+            <svg id="ptr-icon" class="w-5 h-5 text-emerald-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+            <span id="ptr-text" class="text-xs font-bold text-cream-text dark:text-charcoal-text">Pull to refresh</span>
+        </div>
+    </div>
+
     <!-- Main Schedule Container -->
     <main class="max-w-3xl w-full mx-auto px-6 flex-grow flex flex-col gap-6 relative">
         
         <!-- App Main View Wrapper -->
-        <div id="app-main-view" class="flex flex-col gap-6 animate-fade-in">
+        <div id="app-main-view" class="flex flex-col gap-6 animate-fade-in touch-pan-y">
             <!-- Routine Intelligence Banner -->
             <div id="countdown-banner" class="hidden p-4 rounded-xl border border-cream-border dark:border-charcoal-border bg-neutral-50/40 dark:bg-neutral-900/20 text-xs font-semibold text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                 <!-- Countdown timer or greeting states injected dynamically -->
@@ -185,10 +202,16 @@
                 <!-- Injected dynamically by JavaScript -->
             </div>
 
-            <button onclick="exportRoutineToImage()" class="w-full py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50 mt-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                Export Weekly Routine as Image
-            </button>
+            <div class="flex gap-3 mt-2">
+                <button onclick="exportRoutineToImage()" class="flex-1 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Export Image
+                </button>
+                <button onclick="exportRoutineToPDF()" class="flex-1 py-3 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-sm border border-neutral-300/50 dark:border-neutral-600/50">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Export PDF
+                </button>
+            </div>
         </div>
         </div> <!-- End of App Main View -->
 
@@ -227,16 +250,23 @@
                 </div>
 
                 <!-- Assignment / Deadline To-Do Module -->
-                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm flex flex-col h-[280px]">
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm flex flex-col h-[320px]">
                     <div class="flex items-center justify-between mb-4 shrink-0">
                         <div class="flex items-center gap-2">
                             <span class="text-indigo-500">📝</span>
                             <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Deadlines & Tasks</h3>
                         </div>
                     </div>
-                    <div class="flex gap-2 mb-4 shrink-0">
-                        <input type="text" id="todo-input" placeholder="e.g. ECE Assignment due Friday" class="flex-1 px-3 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
-                        <button onclick="addTodo()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Add</button>
+                    <div class="flex flex-col gap-2 mb-4 shrink-0">
+                        <input type="text" id="todo-input" placeholder="Task description..." class="w-full px-3 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text placeholder-neutral-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition">
+                        <div class="flex gap-2">
+                            <select id="todo-course" class="flex-1 px-2 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text focus:outline-none">
+                                <option value="">No Course</option>
+                                <!-- Courses injected here -->
+                            </select>
+                            <input type="date" id="todo-deadline" class="flex-1 px-2 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text focus:outline-none">
+                            <button onclick="addTodo()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Add</button>
+                        </div>
                     </div>
                     <div class="flex-1 overflow-y-auto pr-1 scrollbar-none">
                         <ul id="todo-list" class="space-y-2">
@@ -279,9 +309,14 @@
 
                 <!-- Schedule Overrides (Makeup Classes) Module -->
                 <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-amber-500">📅</span>
-                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides (Makeup Classes)</h3>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-amber-500">📅</span>
+                            <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Schedule Overrides</h3>
+                        </div>
+                        <button onclick="shareOverrides()" class="px-3 py-1.5 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-cream-text dark:text-charcoal-text text-[10px] font-bold rounded-lg transition border border-neutral-300/50 dark:border-neutral-600/50">
+                            Sync / Share
+                        </button>
                     </div>
                     <p class="text-[11px] text-cream-muted dark:text-charcoal-muted font-medium mb-4">Add a makeup class for a specific date. This overrides the live tracking banner.</p>
 
@@ -304,6 +339,28 @@
                     <ul id="overrides-list" class="space-y-2 text-xs">
                         <!-- Overrides injected here -->
                     </ul>
+                </div>
+
+                <!-- Pomodoro Analytics Heatmap -->
+                <div class="bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl p-5 shadow-sm md:col-span-2">
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="text-rose-400">🔥</span>
+                        <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Focus Heatmap</h3>
+                    </div>
+                    <div id="heatmap-container" class="flex gap-1 overflow-x-auto scrollbar-none pb-2">
+                        <!-- Heatmap cells injected dynamically -->
+                    </div>
+                    <div class="flex justify-between items-center mt-2 text-[10px] font-medium text-cream-muted dark:text-charcoal-muted">
+                        <span>Last 30 Days</span>
+                        <span class="flex items-center gap-1">
+                            Less
+                            <span class="w-2.5 h-2.5 rounded-sm bg-neutral-100 dark:bg-neutral-800"></span>
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-200 dark:bg-emerald-900/40"></span>
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-400 dark:bg-emerald-700/60"></span>
+                            <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600 dark:bg-emerald-500"></span>
+                            More
+                        </span>
+                    </div>
                 </div>
 
                 <!-- Attendance Stats List (Moved from Modal) -->
@@ -432,6 +489,44 @@
             </div>
         </div>
     </div>
+    <!-- Share Overrides Modal -->
+    <div id="share-overrides-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
+        <div onclick="closeShareOverridesModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>
+        <div class="modal-content relative bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl w-full max-w-sm shadow-2xl p-6 overflow-hidden transform scale-95 opacity-0 transition-all duration-200 text-center">
+            <div class="flex justify-end mb-2">
+                <button onclick="closeShareOverridesModal()" class="p-1 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted" aria-label="Close modal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <h3 class="text-lg font-bold text-cream-text dark:text-charcoal-text mb-2">Sync Overrides</h3>
+            <p class="text-xs text-cream-muted dark:text-charcoal-muted mb-6">Scan QR or copy link to import</p>
+
+            <div id="qrcode-container" class="flex justify-center p-4 bg-white rounded-xl mx-auto w-fit mb-6 shadow-sm border border-neutral-200"></div>
+
+            <div class="flex gap-2">
+                <input type="text" id="share-link-input" readonly class="flex-1 px-3 py-2 text-xs rounded-lg border border-cream-border dark:border-charcoal-border bg-neutral-50 dark:bg-neutral-900/50 text-cream-text dark:text-charcoal-text focus:outline-none">
+                <button onclick="copyShareLink()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition shadow-sm">Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Context Menu for Routine Cards -->
+    <div id="custom-context-menu" class="hidden fixed z-50 bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-xl shadow-2xl py-2 w-48 text-sm transform scale-95 opacity-0 transition-all duration-150 origin-top-left">
+        <button onclick="contextAction('attendance')" class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-cream-text dark:text-charcoal-text transition flex items-center gap-2">
+            <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            Mark Attendance
+        </button>
+        <button onclick="contextAction('notes')" class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-cream-text dark:text-charcoal-text transition flex items-center gap-2">
+            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            View Notes
+        </button>
+        <button onclick="contextAction('override')" class="w-full text-left px-4 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-cream-text dark:text-charcoal-text transition flex items-center gap-2">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            Add Override
+        </button>
+    </div>
+
     <!-- User Settings Modal -->
     <div id="user-settings-modal" class="modal-container hidden fixed inset-0 z-50 items-center justify-center p-4">
         <div onclick="closeUserSettingsModal()" class="modal-backdrop absolute inset-0 bg-neutral-900/60 dark:bg-black/80 opacity-0 transition-opacity duration-200"></div>
@@ -526,26 +621,27 @@
         </div>
     </div>
 
-    <!-- Premium PWA Install Banner -->
-    <div id="pwa-install-banner" class="hidden fixed bottom-6 left-6 right-6 md:left-auto md:max-w-sm z-40 bg-cream-card dark:bg-charcoal-card border border-cream-border dark:border-charcoal-border rounded-2xl shadow-2xl p-5 transform translate-y-8 opacity-0 transition-all duration-300">
-        <div class="flex items-start gap-4">
-            <div class="p-1 rounded-xl bg-neutral-900/5 dark:bg-neutral-100/5 shrink-0">
-                <img src="logo_dark_bg.svg" alt="App Logo" class="dark:hidden w-8 h-8 rounded-lg select-none" draggable="false">
-                <img src="logo_light_bg.svg" alt="App Logo" class="hidden dark:block w-8 h-8 rounded-lg select-none" draggable="false">
+    <!-- Full-Screen Animated PWA Onboarding Modal -->
+    <div id="pwa-install-banner" class="hidden fixed inset-0 z-[100] bg-cream-bg dark:bg-charcoal-bg flex-col items-center justify-center p-6 transform translate-y-full transition-transform duration-500">
+        <div class="w-full max-w-sm flex flex-col items-center text-center">
+            <!-- App Icon -->
+            <div class="w-24 h-24 mb-8 rounded-3xl shadow-xl overflow-hidden border border-cream-border dark:border-charcoal-border">
+                <img src="logo_dark_bg.png" alt="App Logo" class="w-full h-full object-cover">
             </div>
-            <div class="flex-grow">
-                <h3 class="text-sm font-bold text-cream-text dark:text-charcoal-text">Install Routine App</h3>
-                <p id="pwa-install-desc" class="text-[11px] text-cream-muted dark:text-charcoal-muted mt-1 leading-normal font-medium">
-                    Add to your home screen for quick offline access and class warning alerts.
-                </p>
-                <div class="flex gap-2.5 mt-4">
-                    <button id="pwa-install-btn" class="px-4 py-2 bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 text-xs font-bold rounded-lg transition hover:opacity-90 active:scale-95 shadow-sm">
-                        Install
-                    </button>
-                    <button onclick="dismissPwaBanner()" class="px-4 py-2 bg-neutral-100 dark:bg-neutral-900/50 text-cream-muted dark:text-charcoal-muted text-xs font-bold rounded-lg transition hover:text-neutral-900 dark:hover:text-neutral-100">
-                        Dismiss
-                    </button>
-                </div>
+
+            <h2 class="text-3xl font-extrabold text-cream-text dark:text-charcoal-text mb-4 tracking-tight">Your Academic<br>Companion</h2>
+            <p id="pwa-install-desc" class="text-sm text-cream-muted dark:text-charcoal-muted mb-10 leading-relaxed max-w-xs">
+                Install the dashboard to your home screen for blazing-fast offline access, background push notifications, and a distraction-free student experience.
+            </p>
+
+            <div class="w-full space-y-4">
+                <button id="pwa-install-btn" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-2xl transition shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Install Application
+                </button>
+                <button onclick="dismissPwaBanner()" class="w-full py-4 text-cream-muted dark:text-charcoal-muted hover:text-cream-text dark:hover:text-charcoal-text text-sm font-bold rounded-2xl transition">
+                    Maybe Later
+                </button>
             </div>
         </div>
     </div>
