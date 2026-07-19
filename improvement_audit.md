@@ -1,27 +1,23 @@
-# Improvement Audit v2
+# Improvement Audit v3
 
-*Note: Previous improvements (Notifications, CSV Export, Custom Alerts, Personal Notes, Vacation Mode, Web Share) have been successfully implemented. This document outlines the next generation of potential frontend-only enhancements.*
+*Note: Previous improvements (Student Dashboard, CGPA Estimator, ToDo Tracker, Pomodoro Timer, Schedule Overrides, Export to Image) have been successfully implemented.*
 
-## 1. Local Assignment & Deadline Tracker
-- **Improvement:** Introduce a localized task manager (To-Do / Kanban) integrated directly into the dashboard, allowing users to bind assignments, quizzes, and project deadlines to specific courses.
-- **Reasoning:** Students constantly juggle tasks alongside their routine. A task tracker that inherently understands their registered courses and visually flags upcoming deadlines right on the daily view cards provides immense utility without needing a backend server (`localStorage` only).
+## 1. AI Schedule Generator (On-Device)
+- **Improvement:** Integrate a lightweight, on-device AI model (e.g., using WebNN or ONNX runtime for web) to suggest personalized study schedules based on the user's routine, deadlines, and Pomodoro history.
+- **Reasoning:** Taking productivity to the next level without a backend. By analyzing when a student is most active and their upcoming deadlines, the browser can generate a dynamic, suggested daily study plan.
 
-## 2. Interactive CGPA / Grade Estimator
-- **Improvement:** Add a new module where students can input the credit hours for their courses (auto-populated from the routine if available) and dynamically calculate their expected semester GPA based on target grades.
-- **Reasoning:** GPA calculation is a universal student need. A sleek, frontend calculator that saves their targets in `localStorage` keeps them engaged with the dashboard outside of active class hours.
+## 2. WebRTC Peer-to-Peer Routine Sync
+- **Improvement:** Implement WebRTC to allow students to "bump" phones or share a local QR code to sync their schedule overrides (makeup classes) directly with classmates without a server.
+- **Reasoning:** Since makeup classes are stored locally in `localStorage`, sharing them manually is tedious. WebRTC allows instant, offline-first sharing of overrides between peers in the same classroom.
 
-## 3. Temporary Schedule Overrides (Makeup Classes)
-- **Improvement:** Build a mechanism for users to inject a "one-off" makeup class or cancel a canceled class for a specific calendar date, seamlessly updating the live tracking and timeline UI for that day only.
-- **Reasoning:** University schedules are rarely 100% static. Teachers often reschedule classes. Allowing local overrides ensures the dashboard's "Live Intelligence" banner remains accurate even when the base routine changes temporarily.
+## 3. Geolocation Auto-Mute
+- **Improvement:** Utilize the Geolocation API to detect when a student is physically outside the university campus (e.g., at home or traveling) and automatically suppress class push notifications.
+- **Reasoning:** If a student skips class and stays home, they likely don't want their phone buzzing every hour telling them a class is starting. A local geofence check before triggering the ServiceWorker notification solves this elegantly.
 
-## 4. Built-in Pomodoro & Study Timer
-- **Improvement:** Embed a minimalist Pomodoro focus timer that utilizes the same visual ring/progress bar aesthetics as the live class tracker.
-- **Reasoning:** Since the app already acts as a time-management hub during classes, expanding this to cover self-study hours between classes makes the app useful 24/7. It requires no backend, just `setInterval` and `localStorage` for stats.
+## 4. Dynamic Ambient Dark Mode
+- **Improvement:** Move beyond a simple static `#121212` dark mode. Use the browser's Canvas API to extract the dominant colors from the current routine's branding (e.g., the EWU logo or DSA color palette) and create a highly desaturated, ambient dark mode background specifically tailored to that routine.
+- **Reasoning:** Enhances the premium feel of the application. It provides a subtle, customized aesthetic for each routine while still preserving the battery-saving properties of OLED dark themes.
 
-## 5. Routine Export to Image (Wallpaper Mode)
-- **Improvement:** Utilize an HTML-to-Canvas library (or carefully crafted `@media print` CSS) to allow students to export their Weekly Grid View as a high-resolution, perfectly cropped PNG image.
-- **Reasoning:** Many students prefer setting their routine as their phone lock screen wallpaper. Providing a 1-click native export to an aesthetically pleasing image caters directly to this behavioral habit.
-
-## 6. Local Voice Memos (MediaRecorder API)
-- **Improvement:** Integrate a small voice recorder inside the Class Details Modal using the native browser `MediaRecorder` API to record short lecture audio snippets.
-- **Reasoning:** Pushes the boundaries of what a PWA can do offline. Audio Blobs can be recorded, played back, or downloaded directly from the browser's memory without hitting a server.
+## 5. Routine Analytics & Heatmap
+- **Improvement:** Build a GitHub-style contribution heatmap in the Student Dashboard that visualizes the user's Pomodoro focus time and Attendance records over the entire semester.
+- **Reasoning:** Visualizing consistency is highly motivating for students. A calendar heatmap rendering locally via D3.js or a simple CSS grid provides immediate visual feedback on their academic dedication.

@@ -182,7 +182,6 @@ window.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Escape') {
             closeModal();
             closeSettingsModal();
-            closeStatsModal();
             closeUserSettingsModal();
         }
     });
@@ -417,7 +416,7 @@ function updateRealTimeStatus() {
         return;
     }
 
-    const dayClasses = currentRoutine.data[currentDay] || [];
+    const dayClasses = getEffectiveClassesForDay(currentDay);
     if (dayClasses.length === 0) {
         banner.innerHTML = `
             <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -518,7 +517,7 @@ function renderDaySchedule(dayKey) {
     if (!timeline) return;
     timeline.innerHTML = '';
 
-    const dayClasses = currentRoutine.data[dayKey] || [];
+    const dayClasses = getEffectiveClassesForDay(dayKey);
     
     // Dynamic starts-at time calculation
     const dayInfo = document.getElementById('day-info');
@@ -678,7 +677,7 @@ function renderWeeklyGrid() {
     const currentMin = now.getHours() * 60 + now.getMinutes();
 
     days.forEach(dayKey => {
-        const dayClasses = currentRoutine.data[dayKey] || [];
+        const dayClasses = getEffectiveClassesForDay(dayKey);
         let startsAtText = "No classes";
         if (dayClasses.length > 0) {
             startsAtText = `Starts at: ${dayClasses[0].time.split(/[-–—]/)[0].trim()}`;
@@ -805,6 +804,64 @@ function updateViewModeUI() {
 }
 
 // Settings modal options handlers
+// Student Dashboard Navigation
+function openStudentDashboard() {
+    const mainView = document.getElementById('app-main-view');
+    const dashboard = document.getElementById('student-dashboard-section');
+
+    if (mainView && dashboard) {
+        mainView.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        dashboard.classList.remove('animate-fade-in');
+        dashboard.offsetWidth; // Reflow
+        dashboard.classList.add('animate-fade-in');
+
+        // Initial renders for dashboard components
+        renderTodos();
+        renderCgpa();
+        renderOverrides();
+        renderDashboardAttendance();
+    }
+}
+
+function closeStudentDashboard() {
+    const mainView = document.getElementById('app-main-view');
+    const dashboard = document.getElementById('student-dashboard-section');
+
+    if (mainView && dashboard) {
+        dashboard.classList.add('hidden');
+        mainView.classList.remove('hidden');
+        mainView.classList.remove('animate-fade-in');
+        mainView.offsetWidth; // Reflow
+        mainView.classList.add('animate-fade-in');
+    }
+}
+
+// Image Export logic using html2canvas
+async function exportRoutineToImage() {
+    const container = document.getElementById('weekly-grid-container');
+    if (!container) return;
+
+    // Briefly force light mode for clean export if desired, or keep current theme
+    try {
+        const canvas = await html2canvas(container, {
+            scale: 2, // High resolution
+            backgroundColor: document.documentElement.classList.contains('dark') ? '#121212' : '#FDFBF7',
+            logging: false,
+            useCORS: true
+        });
+
+        const dataUrl = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `Routine_${activeRoutineId}_${new Date().toISOString().split('T')[0]}.png`;
+        link.href = dataUrl;
+        link.click();
+    } catch (error) {
+        console.error("Failed to export routine to image:", error);
+        alert("Failed to generate image.");
+    }
+}
+
 function openUserSettingsModal() {
     // Update alert buttons UI
     const alerts = [5, 10, 15];
@@ -950,81 +1007,368 @@ function closeSettingsModal() {
     }, 250);
 }
 
-// Attendance Stats Modal Handlers
-function openStatsModal() {
-    if (!currentRoutine) return;
+// Student Dashboard Feature Logic
 
-    const listContainer = document.getElementById('stats-list');
+// 1. Dashboard Attendance Rendering
+function renderDashboardAttendance() {
+    if (!currentRoutine) return;
+    const listContainer = document.getElementById('dashboard-stats-list');
     if (!listContainer) return;
     listContainer.innerHTML = '';
 
-    // Extract unique courses from the routine
     const uniqueCourses = new Set();
     Object.values(currentRoutine.data).forEach(dayClasses => {
-        dayClasses.forEach(cls => {
-            uniqueCourses.add(cls.code);
-        });
+        dayClasses.forEach(cls => uniqueCourses.add(cls.code));
     });
 
     if (uniqueCourses.size === 0) {
-        listContainer.innerHTML = `<p class="text-xs text-cream-muted dark:text-charcoal-muted text-center py-4">No courses available.</p>`;
-    } else {
-        const sortedCourses = Array.from(uniqueCourses).sort();
+        listContainer.innerHTML = `<p class="text-xs text-cream-muted dark:text-charcoal-muted col-span-full">No courses available.</p>`;
+        return;
+    }
 
-        sortedCourses.forEach(code => {
-            const stats = getCourseAttendanceStats(code);
+    Array.from(uniqueCourses).sort().forEach(code => {
+        const stats = getCourseAttendanceStats(code);
+        let percentageColor = "text-rose-600 dark:text-rose-400";
+        let barColor = "bg-rose-500";
 
-            let percentageColor = "text-rose-600 dark:text-rose-400";
-            let barColor = "bg-rose-500";
+        if (stats.percentage >= 75) {
+            percentageColor = "text-emerald-600 dark:text-emerald-400";
+            barColor = "bg-emerald-500";
+        } else if (stats.percentage >= 60) {
+            percentageColor = "text-amber-600 dark:text-amber-400";
+            barColor = "bg-amber-500";
+        }
+        if (stats.total === 0) {
+            percentageColor = "text-neutral-500 dark:text-neutral-400";
+            barColor = "bg-neutral-300 dark:bg-neutral-600";
+        }
 
-            if (stats.percentage >= 75) {
-                percentageColor = "text-emerald-600 dark:text-emerald-400";
-                barColor = "bg-emerald-500";
-            } else if (stats.percentage >= 60) {
-                percentageColor = "text-amber-600 dark:text-amber-400";
-                barColor = "bg-amber-500";
-            }
-
-            if (stats.total === 0) {
-                percentageColor = "text-neutral-500 dark:text-neutral-400";
-                barColor = "bg-neutral-300 dark:bg-neutral-600";
-            }
-
-            listContainer.innerHTML += `
-                <div class="border border-cream-border dark:border-charcoal-border bg-cream-bg dark:bg-charcoal-bg rounded-xl p-3 flex flex-col gap-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold text-cream-text dark:text-charcoal-text">${code}</span>
-                        <span class="text-xs font-bold ${percentageColor}">${stats.percentage}%</span>
-                    </div>
-                    <div class="w-full bg-neutral-200/50 dark:bg-neutral-800/80 rounded-full h-1.5 overflow-hidden">
-                        <div class="${barColor} h-full rounded-full" style="width: ${stats.percentage}%"></div>
-                    </div>
-                    <div class="flex justify-between text-[10px] font-medium text-cream-muted dark:text-charcoal-muted">
-                        <span>Present: ${stats.present}</span>
-                        <span>Absent: ${stats.absent}</span>
-                    </div>
+        listContainer.innerHTML += `
+            <div class="border border-cream-border dark:border-charcoal-border bg-cream-bg dark:bg-charcoal-bg rounded-xl p-3 flex flex-col gap-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-cream-text dark:text-charcoal-text">${code}</span>
+                    <span class="text-[10px] font-bold ${percentageColor}">${stats.percentage}%</span>
                 </div>
+                <div class="w-full bg-neutral-200/50 dark:bg-neutral-800/80 rounded-full h-1.5 overflow-hidden">
+                    <div class="${barColor} h-full rounded-full" style="width: ${stats.percentage}%"></div>
+                </div>
+                <div class="flex justify-between text-[9px] font-medium text-cream-muted dark:text-charcoal-muted">
+                    <span>P: ${stats.present}</span>
+                    <span>A: ${stats.absent}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// 2. Pomodoro Timer
+let pomodoroTimer = null;
+let pomodoroTimeLeft = 25 * 60; // 25 minutes
+let pomodoroIsRunning = false;
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+}
+
+function updatePomodoroUI() {
+    const timeEl = document.getElementById('pomodoro-time');
+    if (timeEl) timeEl.innerText = formatTime(pomodoroTimeLeft);
+}
+
+function startPomodoro() {
+    if (pomodoroIsRunning) return;
+    pomodoroIsRunning = true;
+    document.getElementById('btn-pomodoro-start').classList.add('hidden');
+    document.getElementById('btn-pomodoro-pause').classList.remove('hidden');
+    document.getElementById('pomodoro-status').innerText = "Focusing...";
+
+    pomodoroTimer = setInterval(() => {
+        if (pomodoroTimeLeft > 0) {
+            pomodoroTimeLeft--;
+            updatePomodoroUI();
+        } else {
+            clearInterval(pomodoroTimer);
+            pomodoroIsRunning = false;
+            document.getElementById('pomodoro-status').innerText = "Time's up! Take a break.";
+            if (notificationsEnabled && Notification.permission === "granted") {
+                showNotification("Pomodoro Complete", { body: "Great job! Take a 5 minute break." });
+            }
+        }
+    }, 1000);
+}
+
+function pausePomodoro() {
+    pomodoroIsRunning = false;
+    clearInterval(pomodoroTimer);
+    document.getElementById('btn-pomodoro-start').classList.remove('hidden');
+    document.getElementById('btn-pomodoro-pause').classList.add('hidden');
+    document.getElementById('pomodoro-status').innerText = "Paused";
+}
+
+function resetPomodoro() {
+    pausePomodoro();
+    pomodoroTimeLeft = 25 * 60;
+    updatePomodoroUI();
+    document.getElementById('pomodoro-status').innerText = "Ready to Focus";
+}
+
+// 3. To-Do / Deadline Tracker
+let todosData = JSON.parse(localStorage.getItem('todos_v1') || '[]');
+
+function saveTodos() {
+    localStorage.setItem('todos_v1', JSON.stringify(todosData));
+}
+
+function renderTodos() {
+    const list = document.getElementById('todo-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (todosData.length === 0) {
+        list.innerHTML = `<li class="text-xs text-cream-muted dark:text-charcoal-muted text-center py-4">No pending tasks.</li>`;
+        return;
+    }
+
+    todosData.forEach((todo, index) => {
+        list.innerHTML += `
+            <li class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/40 p-2 rounded-lg border border-cream-border/50 dark:border-charcoal-border/50 transition">
+                <input type="checkbox" ${todo.done ? 'checked' : ''} onchange="toggleTodo(${index})" class="w-3.5 h-3.5 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                <span class="text-xs flex-1 text-cream-text dark:text-charcoal-text font-medium ${todo.done ? 'line-through text-cream-muted dark:text-charcoal-muted' : ''}">${todo.text}</span>
+                <button onclick="deleteTodo(${index})" class="text-neutral-400 hover:text-rose-500 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </li>
+        `;
+    });
+}
+
+function addTodo() {
+    const input = document.getElementById('todo-input');
+    const text = input.value.trim();
+    if (text) {
+        todosData.push({ text, done: false });
+        saveTodos();
+        renderTodos();
+        input.value = '';
+    }
+}
+
+function toggleTodo(index) {
+    if (todosData[index]) {
+        todosData[index].done = !todosData[index].done;
+        saveTodos();
+        renderTodos();
+    }
+}
+
+function deleteTodo(index) {
+    todosData.splice(index, 1);
+    saveTodos();
+    renderTodos();
+}
+
+// 5. Schedule Overrides
+let overridesData = JSON.parse(localStorage.getItem('overrides_v1') || '{}');
+
+function saveOverrides() {
+    localStorage.setItem('overrides_v1', JSON.stringify(overridesData));
+}
+
+function addOverride() {
+    const dateInput = document.getElementById('override-date').value;
+    const codeInput = document.getElementById('override-code').value.trim();
+    const timeInput = document.getElementById('override-time').value.trim();
+
+    if (!dateInput || !codeInput || !timeInput) {
+        alert("Please fill in all fields.");
+        return;
+    }
+
+    if (!overridesData[activeRoutineId]) {
+        overridesData[activeRoutineId] = {};
+    }
+
+    if (!overridesData[activeRoutineId][dateInput]) {
+        overridesData[activeRoutineId][dateInput] = [];
+    }
+
+    overridesData[activeRoutineId][dateInput].push({
+        code: codeInput,
+        time: timeInput,
+        type: 'Theory',
+        name: 'Makeup Class',
+        isOverride: true
+    });
+
+    saveOverrides();
+    renderOverrides();
+
+    // Clear inputs
+    document.getElementById('override-code').value = '';
+    document.getElementById('override-time').value = '';
+
+    // Force UI refresh for live tracking in main view
+    updateRealTimeStatus();
+    if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+    else renderWeeklyGrid();
+}
+
+function deleteOverride(date, index) {
+    if (overridesData[activeRoutineId] && overridesData[activeRoutineId][date]) {
+        overridesData[activeRoutineId][date].splice(index, 1);
+        if (overridesData[activeRoutineId][date].length === 0) {
+            delete overridesData[activeRoutineId][date];
+        }
+        saveOverrides();
+        renderOverrides();
+
+        // Force UI refresh for live tracking
+        updateRealTimeStatus();
+        if (currentViewMode === 'daily') renderDaySchedule(currentDayTab);
+        else renderWeeklyGrid();
+    }
+}
+
+function renderOverrides() {
+    const list = document.getElementById('overrides-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const routineOverrides = overridesData[activeRoutineId] || {};
+    let hasOverrides = false;
+
+    for (const date in routineOverrides) {
+        routineOverrides[date].forEach((override, index) => {
+            hasOverrides = true;
+            list.innerHTML += `
+                <li class="flex items-center justify-between bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-900/40 p-2 rounded text-amber-800 dark:text-amber-300">
+                    <div class="font-medium text-[10px] leading-tight">
+                        <span class="font-bold">${override.code}</span> <span class="text-amber-600 dark:text-amber-500">(${date})</span><br>
+                        ${override.time}
+                    </div>
+                    <button onclick="deleteOverride('${date}', ${index})" class="text-amber-600 hover:text-rose-500 transition">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </li>
             `;
         });
     }
 
-    const modal = document.getElementById('stats-modal');
-    modal.classList.remove('hidden');
-    modal.offsetHeight; // force reflow
-    modal.classList.add('active');
-    document.body.classList.add('overflow-hidden');
+    if (!hasOverrides) {
+        list.innerHTML = `<li class="text-xs text-cream-muted dark:text-charcoal-muted font-medium">No overrides added yet.</li>`;
+    }
 }
 
-function closeStatsModal() {
-    const modal = document.getElementById('stats-modal');
-    if (!modal) return;
-    modal.classList.remove('active');
-    setTimeout(() => {
-        if (!modal.classList.contains('active')) {
-            modal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
+function getEffectiveClassesForDay(dayKey, specificDateStr = null) {
+    if (!currentRoutine) return [];
+
+    // 1. Get base routine classes for the day of the week
+    let baseClasses = currentRoutine.data[dayKey] || [];
+
+    // 2. Map dayKey to an actual YYYY-MM-DD if specificDateStr not provided
+    let targetDateStr = specificDateStr;
+    if (!targetDateStr) {
+        targetDateStr = getDateForDayTab(dayKey);
+    }
+
+    // 3. Check for overrides on that date
+    if (overridesData[activeRoutineId] && overridesData[activeRoutineId][targetDateStr]) {
+        // Merge base classes with overrides
+        const addedOverrides = overridesData[activeRoutineId][targetDateStr];
+        let merged = [...baseClasses, ...addedOverrides];
+
+        // Sort by start time
+        merged.sort((a, b) => {
+            const rangeA = parseRange(a.time);
+            const rangeB = parseRange(b.time);
+            const startA = rangeA ? rangeA.startMin : 0;
+            const startB = rangeB ? rangeB.startMin : 0;
+            return startA - startB;
+        });
+
+        return merged;
+    }
+
+    return baseClasses;
+}
+
+// 4. CGPA Estimator
+let cgpaData = JSON.parse(localStorage.getItem('cgpa_v1') || '{}');
+
+function saveCgpa() {
+    localStorage.setItem('cgpa_v1', JSON.stringify(cgpaData));
+}
+
+function calculateCgpa() {
+    const currentList = cgpaData[activeRoutineId] || [];
+    let totalCredits = 0;
+    let totalPoints = 0;
+
+    currentList.forEach(course => {
+        const cred = parseFloat(course.credits);
+        const grade = parseFloat(course.grade);
+        if (!isNaN(cred) && !isNaN(grade)) {
+            totalCredits += cred;
+            totalPoints += (cred * grade);
         }
-    }, 250);
+    });
+
+    const result = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : "0.00";
+    const resEl = document.getElementById('cgpa-result');
+    if (resEl) resEl.innerText = result;
+}
+
+function renderCgpa() {
+    const list = document.getElementById('cgpa-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (!cgpaData[activeRoutineId]) {
+        cgpaData[activeRoutineId] = [];
+    }
+
+    const currentList = cgpaData[activeRoutineId];
+
+    currentList.forEach((course, index) => {
+        list.innerHTML += `
+            <tr class="hover:bg-neutral-50 dark:hover:bg-neutral-900/40 transition">
+                <td class="py-2"><input type="text" value="${course.code}" onchange="updateCgpaCourse(${index}, 'code', this.value)" placeholder="e.g. ECE 2101" class="w-full bg-transparent text-cream-text dark:text-charcoal-text focus:outline-none font-bold"></td>
+                <td class="py-2"><input type="number" step="0.5" value="${course.credits}" onchange="updateCgpaCourse(${index}, 'credits', this.value)" placeholder="3.0" class="w-full bg-transparent text-cream-text dark:text-charcoal-text focus:outline-none"></td>
+                <td class="py-2"><input type="number" step="0.25" value="${course.grade}" onchange="updateCgpaCourse(${index}, 'grade', this.value)" placeholder="4.0" class="w-full bg-transparent text-cream-text dark:text-charcoal-text focus:outline-none font-bold text-blue-600 dark:text-blue-400"></td>
+                <td class="py-2 text-right">
+                    <button onclick="deleteCgpaCourse(${index})" class="text-neutral-400 hover:text-rose-500 transition">
+                        <svg class="w-4 h-4 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    calculateCgpa();
+}
+
+function addCgpaCourse() {
+    if (!cgpaData[activeRoutineId]) cgpaData[activeRoutineId] = [];
+    cgpaData[activeRoutineId].push({ code: '', credits: '', grade: '' });
+    saveCgpa();
+    renderCgpa();
+}
+
+function updateCgpaCourse(index, field, value) {
+    if (cgpaData[activeRoutineId] && cgpaData[activeRoutineId][index]) {
+        cgpaData[activeRoutineId][index][field] = value;
+        saveCgpa();
+        calculateCgpa();
+    }
+}
+
+function deleteCgpaCourse(index) {
+    if (cgpaData[activeRoutineId]) {
+        cgpaData[activeRoutineId].splice(index, 1);
+        saveCgpa();
+        renderCgpa();
+    }
 }
 
 function selectRoutine(id) {
@@ -1057,7 +1401,7 @@ function selectRoutine(id) {
 // Modal handling logic
 function openClassModal(dayKey, index) {
     if (!currentRoutine) return;
-    const cls = currentRoutine.data[dayKey][index];
+    const cls = getEffectiveClassesForDay(dayKey)[index];
     if (!cls) return;
     
     // Injected type and update theme colors
@@ -1386,7 +1730,7 @@ function checkUpcomingClassAlerts() {
     const currentDay = dayMap[now.getDay()];
     const currentMin = now.getHours() * 60 + now.getMinutes();
 
-    const dayClasses = currentRoutine.data[currentDay] || [];
+    const dayClasses = getEffectiveClassesForDay(currentDay);
     const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
 
     const triggerSupported = ('serviceWorker' in navigator) && ('showTrigger' in Notification.prototype);
