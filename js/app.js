@@ -1868,3 +1868,51 @@ function dismissPwaBanner() {
 
     sessionStorage.setItem('pwa_banner_dismissed', 'true');
 }
+
+
+function openSettingsModal() {
+    const listContainer = document.getElementById('routine-options-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    Object.values(routines).forEach(r => {
+        const isSelected = r.id === activeRoutineId;
+        const borderTheme = isSelected
+            ? 'border-neutral-900 dark:border-neutral-100 bg-neutral-50/50 dark:bg-neutral-900/40 ring-1 ring-neutral-900 dark:ring-neutral-100'
+            : 'border-cream-border dark:border-charcoal-border hover:border-neutral-300 dark:hover:border-neutral-700 bg-transparent';
+
+        listContainer.innerHTML += `
+            <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRoutine('${r.id}'); }" onclick="selectRoutine('${r.id}')" class="border ${borderTheme} rounded-xl p-3.5 cursor-pointer transition select-none flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
+                <div>
+                    <p class="text-sm font-bold text-cream-text dark:text-charcoal-text">${r.name}</p>
+                    <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5 font-medium">${r.subtitle}</p>
+                </div>
+                ${isSelected ? `
+                    <svg class="w-4 h-4 text-cream-text dark:text-charcoal-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                ` : ''}
+            </div>
+        `;
+    });
+
+    const modal = document.getElementById('settings-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.offsetHeight; // force reflow
+        modal.classList.add('active');
+        document.body.classList.add('overflow-hidden');
+    }
+}
+
+function closeSettingsModal() {
+    const modal = document.getElementById('settings-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }, 250);
+}

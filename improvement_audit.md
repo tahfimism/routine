@@ -27,3 +27,9 @@
 18. **Custom Break Timers**: Allow users to customize not just the class alert times, but the Pomodoro break duration (e.g., 5 min vs 15 min).
 19. **Battery-Saver Mode**: Introduce a setting that disables all `setInterval` UI polling, live progress bars, and CSS animations to preserve phone battery.
 20. **Teacher Directory Explorer**: Create a standalone view in the dashboard that lists all teacher acronyms and full names with mailto: links (if available).
+
+## New UI/UX Ideas
+21. **Focus Outline Accessibility**: Improve keyboard navigation by replacing default browser focus rings with custom, high-contrast, rounded focus rings using existing Tailwind utilities (`focus-visible:ring-emerald-500/50`).
+22. **Empty State Illustrations**: Add subtle, minimalist SVG illustrations or icons for empty states (e.g., when no tasks are present in the To-Do list, or when a day has no classes).
+23. **Smooth Scroll to Active Class**: Upon loading the daily view, automatically scroll the page to center the currently active class card on the screen.
+24. **Skeleton Loading States**: Implement a lightweight CSS skeleton loader animation instead of a blank screen when transitioning between heavy UI views or parsing large routine files.
