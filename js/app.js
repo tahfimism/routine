@@ -1546,3 +1546,325 @@ function getEffectiveClassesForDay(dayKey, specificDateStr = null) {
 
     return baseClasses;
 }
+
+
+function selectRoutine(id) {
+    const matched = Object.values(routines).find(r => r.id === id);
+    if (!matched) return;
+
+    activeRoutineId = matched.id;
+    localStorage.setItem('active_routine_id', matched.id);
+    currentRoutine = matched;
+
+    // Update Header titles & palette
+    updateHeaderTitles();
+    applyRoutinePalette(currentRoutine);
+
+    // Re-initialize day selection and rendering
+    setupInitialDay();
+
+    if (currentViewMode === 'weekly') {
+        renderWeeklyGrid();
+    } else {
+        renderDaySchedule(currentDayTab);
+    }
+
+    // Update real time banner status
+    updateRealTimeStatus();
+
+    // Close modal
+    closeSettingsModal();
+}
+
+function openClassModal(dayKey, index) {
+    if (!currentRoutine) return;
+    const cls = currentRoutine.data[dayKey][index];
+    if (!cls) return;
+
+    // Injected type and update theme colors
+    const typePill = document.getElementById('modal-class-type');
+    typePill.innerText = cls.type;
+    if (cls.type === 'Sessional') {
+        typePill.className = "inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 mb-2";
+    } else {
+        typePill.className = "inline-block px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded text-neutral-700 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/40 mb-2";
+    }
+
+    // Inject code & title
+    document.getElementById('modal-class-code-name').innerHTML = `${cls.code} &bull; ${cls.name}`;
+
+    // Inject time and period
+    document.getElementById('modal-class-time-period').innerText = `${cls.time} (${cls.period || 'N/A'})`;
+
+    // Inject location (dynamic room loading shown in popup only, not in feed cards)
+    let demographic = "All Students";
+    if (cls.group) {
+        demographic = `${cls.group} (Group A: Roll 2409001-030 | Group B: Roll 2409031-060)`;
+    }
+    const roomLabel = cls.room || 'ECE-102';
+    document.getElementById('modal-class-location').innerHTML = `${roomLabel} &bull; ${demographic}`;
+
+    // Inject full instructor names mapped from acronyms
+    const instructorsList = document.getElementById('modal-class-instructors');
+    instructorsList.innerHTML = '';
+
+    if (cls.instructors && cls.instructors.length > 0) {
+        const teacherDir = currentRoutine.teacherDirectory || {};
+        cls.instructors.forEach(acronym => {
+            const fullName = teacherDir[acronym] || acronym;
+            instructorsList.innerHTML += `
+                <li class="flex items-center gap-2 text-cream-text dark:text-charcoal-text text-sm font-semibold">
+                    <span class="inline-block w-1.5 h-1.5 rounded-full bg-cream-muted dark:bg-charcoal-muted"></span>
+                    <span>${fullName} (${acronym})</span>
+                </li>
+            `;
+        });
+    } else {
+        instructorsList.innerHTML = `
+            <li class="text-neutral-400 dark:text-neutral-500 text-sm font-medium italic">
+                No instructors assigned.
+            </li>
+        `;
+    }
+
+    // Inject special notes (e.g. overlaps)
+    const notesContainer = document.getElementById('modal-class-notes-container');
+    if (cls.notes) {
+        document.getElementById('modal-class-notes').innerText = cls.notes;
+        notesContainer.classList.remove('hidden');
+    } else {
+        notesContainer.classList.add('hidden');
+    }
+
+    // Display the modal with animation
+    const modal = document.getElementById('detail-modal');
+    modal.classList.remove('hidden');
+
+    // Force a browser reflow to trigger opacity transition
+    modal.offsetHeight;
+    modal.classList.add('active');
+
+    // Prevent body scrolling
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeModal() {
+    const modal = document.getElementById('detail-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+
+    // Hide modal and restore body scroll after animation completes
+    setTimeout(() => {
+        if (!modal.classList.contains('active')) {
+            modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    }, 250); // Matches CSS transition duration (250ms)
+}
+
+function setupTheme() {
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('sun-icon').classList.remove('hidden');
+        document.getElementById('moon-icon').classList.add('hidden');
+    } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('sun-icon').classList.add('hidden');
+        document.getElementById('moon-icon').classList.remove('hidden');
+    }
+}
+
+function toggleDarkMode() {
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+    const sunIcon = document.getElementById('sun-icon');
+    const moonIcon = document.getElementById('moon-icon');
+
+    const activeIcon = isDark ? sunIcon : moonIcon;
+    const inactiveIcon = isDark ? moonIcon : sunIcon;
+
+    // Switch visibility
+    inactiveIcon.classList.add('hidden');
+    activeIcon.classList.remove('hidden');
+
+    // Trigger rotation transition
+    activeIcon.classList.add('theme-icon-rotate');
+    setTimeout(() => {
+        activeIcon.classList.remove('theme-icon-rotate');
+    }, 500);
+}
+
+async function toggleNotifications() {
+    if (!("Notification" in window)) {
+        alert("This browser does not support web notifications.");
+        return;
+    }
+
+    if (Notification.permission === "default") {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+            notificationsEnabled = false;
+            localStorage.setItem('notifications_enabled', 'false');
+            updateNotificationUI();
+            return;
+        }
+    } else if (Notification.permission === "denied") {
+        alert("Notification permissions are blocked. Please enable them in your browser site settings.");
+        notificationsEnabled = false;
+        localStorage.setItem('notifications_enabled', 'false');
+        updateNotificationUI();
+        return;
+    }
+
+    notificationsEnabled = !notificationsEnabled;
+    localStorage.setItem('notifications_enabled', notificationsEnabled ? 'true' : 'false');
+    updateNotificationUI();
+
+    if (notificationsEnabled) {
+        showNotification("Class Alerts Enabled", {
+            body: "We will notify you 10 minutes before your classes start.",
+            tag: "alert-config"
+        });
+    }
+}
+
+function updateNotificationUI() {
+    const btn = document.getElementById('notification-btn');
+    if (!btn) return;
+
+    if (notificationsEnabled && Notification.permission === "granted") {
+        // Highlight active bell with emerald color
+        btn.className = "p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-emerald-600 dark:text-emerald-400";
+        btn.innerHTML = `
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 22a2.98 2.98 0 0 0 2.818-2H9.182A2.98 2.98 0 0 0 12 22zm7-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C8.63 5.36 7 7.92 7 11v5l-2 2v1h14v-1l-2-2z"></path>
+            </svg>
+        `;
+    } else {
+        // Normal gray bell outline
+        btn.className = "p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-900 transition text-cream-muted dark:text-charcoal-muted";
+        btn.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+            </svg>
+        `;
+    }
+}
+
+function showNotification(title, options) {
+    if (!notificationsEnabled || Notification.permission !== "granted") return;
+
+    const defaultOptions = {
+        icon: 'favicon.ico',
+        badge: 'favicon.ico',
+        ...options
+    };
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, defaultOptions);
+        }).catch(() => {
+            new Notification(title, defaultOptions);
+        });
+    } else {
+        new Notification(title, defaultOptions);
+    }
+}
+
+function checkUpcomingClassAlerts() {
+    if (!notificationsEnabled || Notification.permission !== "granted" || !currentRoutine) return;
+
+    const now = new Date();
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentDay = dayMap[now.getDay()];
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+
+    const dayClasses = currentRoutine.data[currentDay] || [];
+    const dateStr = now.toISOString().split('T')[0];
+
+    dayClasses.forEach(cls => {
+        const range = parseRange(cls.time);
+        if (!range) return;
+
+        const minutesDiff = range.startMin - currentMin;
+        const roomStr = cls.room || 'ECE-102';
+
+        // 1. Alert 10 minutes before class start
+        if (minutesDiff === 10) {
+            const alertKey = `${dateStr}_${cls.code}_10m`;
+            if (!sentNotifications[alertKey]) {
+                sentNotifications[alertKey] = true;
+                showNotification(`Class starts in 10 minutes!`, {
+                    body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
+                    tag: `class-10m-${cls.code}`,
+                    requireInteraction: true
+                });
+            }
+        }
+
+        // 2. Alert exactly at class start
+        if (minutesDiff === 0) {
+            const alertKey = `${dateStr}_${cls.code}_start`;
+            if (!sentNotifications[alertKey]) {
+                sentNotifications[alertKey] = true;
+                showNotification(`Class starting now!`, {
+                    body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
+                    tag: `class-start-${cls.code}`,
+                    requireInteraction: true
+                });
+            }
+        }
+    });
+}
+
+function showPwaBanner(platform) {
+    if (sessionStorage.getItem('pwa_banner_dismissed') === 'true') return;
+
+    const banner = document.getElementById('pwa-install-banner');
+    const desc = document.getElementById('pwa-install-desc');
+    const btn = document.getElementById('pwa-install-btn');
+    if (!banner || !desc || !btn) return;
+
+    if (platform === 'ios') {
+        desc.innerText = "Please open this page in Safari, tap the Share icon (at the bottom), and select 'Add to Home Screen' for offline access and alerts.";
+        btn.classList.add('hidden'); // Programmatic triggers not supported on iOS Safari
+    } else {
+        btn.classList.remove('hidden');
+
+        // Remove previous listeners (if any) and attach fresh click listener
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+
+        newBtn.addEventListener('click', () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                }
+                deferredPrompt = null;
+                dismissPwaBanner();
+            });
+        });
+    }
+
+    // Slide up animation
+    banner.classList.remove('hidden');
+    banner.offsetHeight; // Force layout reflow
+    banner.classList.remove('opacity-0', 'translate-y-8');
+    banner.classList.add('opacity-100', 'translate-y-0');
+}
+
+function dismissPwaBanner() {
+    const banner = document.getElementById('pwa-install-banner');
+    if (!banner) return;
+
+    banner.classList.remove('opacity-100', 'translate-y-0');
+    banner.classList.add('opacity-0', 'translate-y-8');
+    setTimeout(() => {
+        banner.classList.add('hidden');
+    }, 300);
+
+    sessionStorage.setItem('pwa_banner_dismissed', 'true');
+}
