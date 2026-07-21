@@ -27,6 +27,22 @@ body, header, main, footer, div, section, p, h1, h2, h3, span, button, nav, svg 
 }
 .schedule-card:hover {
     transform: translateY(-2px) scale(1.015);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+}
+
+/* Focus visibility for interactive elements */
+input:focus-visible, button:focus-visible, [role="button"]:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.5) !important; /* emerald-500/50 */
+}
+
+/* Toast Animation */
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+.toast-enter {
+    animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Pulsing effect for live indicator */

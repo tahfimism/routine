@@ -68,6 +68,129 @@ function savePersonalNotesData() {
     localStorage.setItem('personal_notes_v1', JSON.stringify(personalNotesData));
 }
 
+// Haptic Feedback Helper
+window.triggerHaptic = function(type = 'light') {
+    if (navigator.vibrate) {
+        if (type === 'heavy') navigator.vibrate([40, 30, 40]);
+        else navigator.vibrate(20);
+    }
+};
+
+// Context Menu Logic
+let contextMenuTarget = null;
+window.openContextMenu = function(e, dayKey, index) {
+    e.preventDefault();
+    contextMenuTarget = { dayKey, index };
+    const menu = document.getElementById('custom-context-menu');
+    if (!menu) return;
+    
+    // Position menu near cursor
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+    
+    // Show menu
+    menu.classList.remove('hidden');
+    menu.offsetHeight; // force reflow
+    menu.classList.remove('opacity-0', 'scale-95');
+    menu.classList.add('opacity-100', 'scale-100');
+};
+
+window.contextAction = function(action) {
+    if (!contextMenuTarget) return;
+    const { dayKey, index } = contextMenuTarget;
+    
+    // Hide menu
+    const menu = document.getElementById('custom-context-menu');
+    if (menu) {
+        menu.classList.add('hidden');
+        menu.classList.remove('opacity-100', 'scale-100');
+    }
+
+    if (action === 'attendance' || action === 'notes') {
+        openClassModal(dayKey, index);
+    } else if (action === 'override') {
+        openStudentDashboard();
+    }
+    
+    contextMenuTarget = null;
+};
+
+// Toast Notification System
+window.showToast = function(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    const isError = type === 'error';
+    const bg = isError ? 'bg-rose-500' : 'bg-neutral-800 dark:bg-neutral-100';
+    const text = isError ? 'text-white' : 'text-white dark:text-neutral-900';
+    
+    toast.className = `${bg} ${text} px-4 py-3 rounded-xl shadow-lg text-sm font-semibold flex items-center gap-2 toast-enter pointer-events-auto`;
+    toast.innerHTML = `
+        ${isError ? 
+            `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` 
+            : `<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>`
+        }
+        <span>${message}</span>
+    `;
+
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+};
+
+// Override default alert
+window.alert = function(msg) {
+    const isError = msg.toLowerCase().includes('fail') || msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('error') || msg.toLowerCase().includes('blocked');
+    showToast(msg, isError ? 'error' : 'info');
+};
+
+// Time Validation Handler
+window.validateOverrideTime = function(input) {
+    const val = input.value.trim();
+    if (!val) {
+        input.classList.remove('border-red-500', 'border-emerald-500');
+        input.classList.add('border-cream-border', 'dark:border-charcoal-border');
+        return;
+    }
+    const regex = /^([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))\s*[-–—]\s*([0-9]{1,2}:[0-9]{2}\s*(?:AM|PM))$/i;
+    if (regex.test(val)) {
+        input.classList.remove('border-red-500', 'border-cream-border', 'dark:border-charcoal-border');
+        input.classList.add('border-emerald-500');
+    } else {
+        input.classList.remove('border-emerald-500', 'border-cream-border', 'dark:border-charcoal-border');
+        input.classList.add('border-red-500');
+    }
+};
+
+// Dismissible Banner Logic
+window.dismissCountdownBanner = function() {
+    sessionStorage.setItem('countdown_banner_dismissed', new Date().toDateString());
+    const banner = document.getElementById('countdown-banner');
+    if (banner) banner.classList.add('hidden');
+};
+
+// Global Escape Key Handler
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        if (typeof closeSettingsModal === 'function') closeSettingsModal();
+        if (typeof closeModal === 'function') closeModal();
+        if (typeof closeStudentDashboard === 'function') closeStudentDashboard();
+        if (typeof dismissPwaBanner === 'function') dismissPwaBanner();
+        const menu = document.getElementById('custom-context-menu');
+        if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            menu.classList.remove('opacity-100', 'scale-100');
+            contextMenuTarget = null;
+        }
+    }
+});
+
 // Helper to get a date string for a given day in the current week (Sun-Thu)
 function getDateForDayTab(dayKey) {
     const today = new Date();
@@ -490,19 +613,40 @@ function updateRealTimeStatus() {
     if (!currentRoutine) return;
     
     const banner = document.getElementById('countdown-banner');
-    if (!banner) return;
+    const content = document.getElementById('countdown-content');
+    if (!banner || !content) return;
+
+    const isDismissed = sessionStorage.getItem('countdown_banner_dismissed') === new Date().toDateString();
+
+    const now = new Date();
+    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentDay = dayMap[now.getDay()];
+    const currentMin = now.getHours() * 60 + now.getMinutes();
+    
+    const academicDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+    const isAcademic = academicDays.includes(currentDay);
+    
+    // Check class alert triggers
+    checkUpcomingClassAlerts();
+
+    // If we're on the Daily view, update the card styles live
+    if (currentViewMode === 'daily') {
+        renderDaySchedule(currentDayTab);
+    }
+    
+    if (isDismissed) {
+        banner.classList.add('hidden');
+        return;
+    }
 
     if (vacationMode) {
-        banner.innerHTML = `
-            <svg class="w-4 h-4 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        content.innerHTML = `
+            <svg class="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z"></path>
             </svg>
             <span class="text-emerald-700 dark:text-emerald-400">Vacation Mode Active - Notifications & Live Tracking Paused</span>
         `;
         banner.classList.remove('hidden');
-        if (currentViewMode === 'daily') {
-            renderDaySchedule(currentDayTab);
-        }
         return;
     }
 
@@ -528,8 +672,8 @@ function updateRealTimeStatus() {
         if (currentRoutine.data["Sun"]?.[0]) {
             firstSunTime = currentRoutine.data["Sun"][0].time.split(/[-–—]/)[0].trim();
         }
-        banner.innerHTML = `
-            <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        content.innerHTML = `
+            <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <span>Enjoy your weekend! Sunday classes start at ${firstSunTime}.</span>
@@ -540,8 +684,8 @@ function updateRealTimeStatus() {
 
     const dayClasses = getEffectiveClassesForDay(currentDay);
     if (dayClasses.length === 0) {
-        banner.innerHTML = `
-            <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        content.innerHTML = `
+            <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
             </svg>
             <span>No classes scheduled for today. Enjoy your day!</span>
@@ -577,7 +721,7 @@ function updateRealTimeStatus() {
 
     // 2. Active Class Banner State
     if (activeClass) {
-        banner.innerHTML = `
+        content.innerHTML = `
             <span class="flex h-2 w-2 relative flex-shrink-0">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -594,15 +738,15 @@ function updateRealTimeStatus() {
     if (nextClass) {
         const firstTimeStr = nextClass.data.time.split(/[-–—]/)[0].trim();
         if (nextClass.minUntil <= 60) {
-            banner.innerHTML = `
-                <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            content.innerHTML = `
+                <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <span>Next class (<span class="font-bold">${nextClass.data.code}</span>) starts in ${nextClass.minUntil} minutes.</span>
             `;
         } else {
-            banner.innerHTML = `
-                <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            content.innerHTML = `
+                <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
                 <span>Class schedule starts today at ${firstTimeStr}. First class: <span class="font-bold">${nextClass.data.code}</span>.</span>
@@ -613,8 +757,8 @@ function updateRealTimeStatus() {
     }
 
     // 4. Evening/All Classes Completed State
-    banner.innerHTML = `
-        <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    content.innerHTML = `
+        <svg class="w-4 h-4 text-neutral-500 dark:text-neutral-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <span>All classes completed for today. Enjoy your evening!</span>
@@ -641,13 +785,30 @@ function renderDaySchedule(dayKey) {
 
     const dayClasses = getEffectiveClassesForDay(dayKey);
     
+    // Empty state
+    if (dayClasses.length === 0) {
+        timeline.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-12 text-center opacity-60">
+                <svg class="w-16 h-16 text-cream-muted dark:text-charcoal-muted mb-4" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                <p class="text-sm font-semibold text-cream-text dark:text-charcoal-text">No classes today!</p>
+                <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-1">Take a break or add a task to your To-Do list.</p>
+            </div>
+        `;
+        const dayInfo = document.getElementById('day-info');
+        if (dayInfo) dayInfo.classList.add('hidden');
+        
+        // Still render today's tasks even if classes are empty
+        renderTodaysTasksWidget(dayKey);
+        return;
+    }
+
     // Dynamic starts-at time calculation
     const dayInfo = document.getElementById('day-info');
     if (dayInfo) {
         if (dayClasses.length > 0) {
             const firstTime = dayClasses[0].time.split(/[-–—]/)[0].trim();
             dayInfo.innerHTML = `
-                <svg class="w-3.5 h-3.5 text-cream-muted dark:text-charcoal-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-3.5 h-3.5 text-cream-muted dark:text-charcoal-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <span>Starts at: ${firstTime}</span>
@@ -774,6 +935,39 @@ function renderDaySchedule(dayKey) {
             </div>
         `;
     });
+
+    // Auto-scroll to active class if available
+    setTimeout(() => {
+        const liveCard = timeline.querySelector('.border-emerald-500\\/50');
+        if (liveCard) {
+            liveCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
+
+    // Populate Today's Tasks widget
+    const dateStr = getDateForDayTab(dayKey);
+    const dayTasks = todosData.filter(t => t.deadline === dateStr && !t.done);
+    const tasksWidget = document.getElementById('daily-tasks-widget');
+    const tasksList = document.getElementById('daily-tasks-list');
+    
+    if (tasksWidget && tasksList) {
+        if (dayTasks.length > 0) {
+            tasksList.innerHTML = '';
+            dayTasks.forEach(todo => {
+                const badgeHtml = todo.course ? `<span class="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase">${todo.course}</span>` : '';
+                tasksList.innerHTML += `
+                    <li class="flex items-center gap-2 bg-neutral-50 dark:bg-neutral-900/40 p-3 rounded-lg border border-cream-border/50 dark:border-charcoal-border/50">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+                        <span class="text-xs text-cream-text dark:text-charcoal-text font-medium truncate flex-grow">${todo.text}</span>
+                        ${badgeHtml ? `<div>${badgeHtml}</div>` : ''}
+                    </li>
+                `;
+            });
+            tasksWidget.classList.remove('hidden');
+        } else {
+            tasksWidget.classList.add('hidden');
+        }
+    }
 }
 
 // Render the 5-Day Weekly Grid Layout
@@ -956,6 +1150,9 @@ function closeStudentDashboard() {
         mainView.classList.remove('animate-fade-in');
         mainView.offsetWidth; // Reflow
         mainView.classList.add('animate-fade-in');
+        if (currentDayTab) {
+            renderDaySchedule(currentDayTab);
+        }
     }
 }
 
@@ -1248,7 +1445,12 @@ function renderTodos() {
     populateTodoCourseDropdown();
 
     if (todosData.length === 0) {
-        list.innerHTML = `<li class="text-xs text-cream-muted dark:text-charcoal-muted text-center py-4">No pending tasks.</li>`;
+        list.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-8 text-center opacity-60">
+                <svg class="w-10 h-10 text-cream-muted dark:text-charcoal-muted mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                <p class="text-xs font-semibold text-cream-text dark:text-charcoal-text">No pending tasks</p>
+            </div>
+        `;
         return;
     }
 
@@ -1578,7 +1780,8 @@ function selectRoutine(id) {
 
 function openClassModal(dayKey, index) {
     if (!currentRoutine) return;
-    const cls = currentRoutine.data[dayKey][index];
+    const effectiveClasses = getEffectiveClassesForDay(dayKey);
+    const cls = effectiveClasses[index];
     if (!cls) return;
 
     // Injected type and update theme colors
@@ -1635,6 +1838,63 @@ function openClassModal(dayKey, index) {
     } else {
         notesContainer.classList.add('hidden');
     }
+
+    // Personal Notes
+    const notesArea = document.getElementById('modal-personal-notes');
+    if (notesArea) {
+        const key = `${activeRoutineId}_${cls.code}`;
+        notesArea.value = personalNotesData[key] || '';
+        notesArea.oninput = (e) => {
+            personalNotesData[key] = e.target.value;
+            savePersonalNotesData();
+        };
+    }
+
+    // Attendance
+    const dateStr = getDateForDayTab(dayKey);
+    const dateSpan = document.getElementById('modal-attendance-date');
+    if (dateSpan) dateSpan.innerText = `(${dateStr})`;
+    
+    function refreshModalAttendance() {
+        const routineAtt = attendanceData[activeRoutineId] || {};
+        const courseAtt = routineAtt[cls.code] || {};
+        const status = courseAtt[dateStr];
+        
+        const btnPresent = document.getElementById('btn-attendance-present');
+        const btnAbsent = document.getElementById('btn-attendance-absent');
+        
+        if (btnPresent && btnAbsent) {
+            btnPresent.classList.remove('bg-emerald-500', 'text-white', 'dark:text-white', 'bg-cream-card', 'dark:bg-charcoal-card');
+            btnAbsent.classList.remove('bg-rose-500', 'text-white', 'dark:text-white', 'bg-cream-card', 'dark:bg-charcoal-card');
+            
+            if (status === 'present') {
+                btnPresent.classList.add('bg-emerald-500', 'text-white', 'dark:text-white');
+                btnAbsent.classList.add('bg-cream-card', 'dark:bg-charcoal-card');
+            } else if (status === 'absent') {
+                btnAbsent.classList.add('bg-rose-500', 'text-white', 'dark:text-white');
+                btnPresent.classList.add('bg-cream-card', 'dark:bg-charcoal-card');
+            } else {
+                btnPresent.classList.add('bg-cream-card', 'dark:bg-charcoal-card');
+                btnAbsent.classList.add('bg-cream-card', 'dark:bg-charcoal-card');
+            }
+        }
+        
+        // Update stats
+        const stats = getCourseAttendanceStats(cls.code);
+        const statsEl = document.getElementById('modal-attendance-stats');
+        if (statsEl) {
+            statsEl.innerText = `${stats.percentage}% (${stats.present}/${stats.total})`;
+        }
+    }
+    
+    const btnPresent = document.getElementById('btn-attendance-present');
+    if (btnPresent) btnPresent.onclick = () => { markAttendance(cls.code, dateStr, 'present'); refreshModalAttendance(); };
+    const btnAbsent = document.getElementById('btn-attendance-absent');
+    if (btnAbsent) btnAbsent.onclick = () => { markAttendance(cls.code, dateStr, 'absent'); refreshModalAttendance(); };
+    const btnClear = document.getElementById('btn-attendance-clear');
+    if (btnClear) btnClear.onclick = () => { markAttendance(cls.code, dateStr, null); refreshModalAttendance(); };
+    
+    refreshModalAttendance();
 
     // Display the modal with animation
     const modal = document.getElementById('detail-modal');
@@ -1870,49 +2130,3 @@ function dismissPwaBanner() {
 }
 
 
-function openSettingsModal() {
-    const listContainer = document.getElementById('routine-options-list');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-
-    Object.values(routines).forEach(r => {
-        const isSelected = r.id === activeRoutineId;
-        const borderTheme = isSelected
-            ? 'border-neutral-900 dark:border-neutral-100 bg-neutral-50/50 dark:bg-neutral-900/40 ring-1 ring-neutral-900 dark:ring-neutral-100'
-            : 'border-cream-border dark:border-charcoal-border hover:border-neutral-300 dark:hover:border-neutral-700 bg-transparent';
-
-        listContainer.innerHTML += `
-            <div role="button" tabindex="0" onkeydown="if(event.key === 'Enter' || event.key === ' ') { event.preventDefault(); selectRoutine('${r.id}'); }" onclick="selectRoutine('${r.id}')" class="border ${borderTheme} rounded-xl p-3.5 cursor-pointer transition select-none flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50">
-                <div>
-                    <p class="text-sm font-bold text-cream-text dark:text-charcoal-text">${r.name}</p>
-                    <p class="text-xs text-cream-muted dark:text-charcoal-muted mt-0.5 font-medium">${r.subtitle}</p>
-                </div>
-                ${isSelected ? `
-                    <svg class="w-4 h-4 text-cream-text dark:text-charcoal-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                ` : ''}
-            </div>
-        `;
-    });
-
-    const modal = document.getElementById('settings-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        modal.offsetHeight; // force reflow
-        modal.classList.add('active');
-        document.body.classList.add('overflow-hidden');
-    }
-}
-
-function closeSettingsModal() {
-    const modal = document.getElementById('settings-modal');
-    if (!modal) return;
-    modal.classList.remove('active');
-    setTimeout(() => {
-        if (!modal.classList.contains('active')) {
-            modal.classList.add('hidden');
-            document.body.classList.remove('overflow-hidden');
-        }
-    }, 250);
-}
