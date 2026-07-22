@@ -650,22 +650,6 @@ function updateRealTimeStatus() {
         return;
     }
 
-    const now = new Date();
-    const dayMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const currentDay = dayMap[now.getDay()];
-    const currentMin = now.getHours() * 60 + now.getMinutes();
-    
-    const academicDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
-    const isAcademic = academicDays.includes(currentDay);
-    
-    // Check class alert triggers
-    checkUpcomingClassAlerts();
-
-    // If we're on the Daily view, update the card styles live
-    if (currentViewMode === 'daily') {
-        renderDaySchedule(currentDayTab);
-    }
-
     // 1. Weekend / Off-Hours Greeting Banner State
     if (!isAcademic) {
         let firstSunTime = '08:50 AM';
