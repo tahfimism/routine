@@ -649,7 +649,6 @@ function updateRealTimeStatus() {
         banner.classList.remove('hidden');
         return;
     }
-
     // 1. Weekend / Off-Hours Greeting Banner State
     if (!isAcademic) {
         let firstSunTime = '08:50 AM';

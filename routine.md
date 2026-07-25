@@ -136,12 +136,6 @@
     
     _Mid-Session Break_
     
-- **10:40 AM – 11:30 AM** (4th Period)
-    
-    **Math 2109** – Fourier Analysis & Laplace Transform (Theory)
-    
-    _Instructor:_ Mr. Md. Shakil Hossain (SH)
-    
 - **11:30 AM – 12:20 PM** (5th Period)
     
     **ECE 2103** – Digital Electronics (Theory)
@@ -181,15 +175,21 @@
     
 - **10:40 AM – 11:30 AM** (4th Period)
     
-    **ECE 2103** – Digital Electronics (Theory)
+    **ECE 1205** – Electronic Circuits & Systems (Theory)
     
-    _Instructor:_ Prof. Dr. Sk. Shariful Alam (SSA)
+    _Instructor:_ Ms. Shafrin Sultana (SS)
     
 - **11:30 AM – 12:20 PM** (5th Period)
     
     **ECE 2101** – Electronic Devices & Circuits I (Theory)
     
     _Instructor:_ Ms. Shafrin Sultana (SS)
+    
+- **12:20 PM – 01:10 PM** (6th Period)
+    
+    **Math 2109** – Fourier Analysis & Laplace Transform (Theory)
+    
+    _Instructor:_ Mr. Md. Shakil Hossain (SH)
     
 - **01:10 PM – 02:30 PM**
     
