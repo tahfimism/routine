@@ -66,23 +66,23 @@ const routines = {
         "teacherDirectory": {},
         "data": {
             "Sun": [
-                { "time": "11:50 AM – 01:20 PM", "code": "STA293", "name": "STA293 (SEC 2)", "type": "Theory", "instructors": [], "room": "FUB-903", "period": "N/A" },
-                { "time": "01:30 PM – 03:00 PM", "code": "MAT291", "name": "MAT291 (SEC 3)", "type": "Theory", "instructors": [], "room": "AB3-401", "period": "N/A" }
+                { "time": "11:50 AM – 01:20 PM", "code": "CS397", "name": "Data Structure and Algo (SEC 1)", "type": "Theory", "instructors": [], "room": "AB1-302", "period": "N/A" },
+                { "time": "03:10 PM – 04:40 PM", "code": "MAT295", "name": "Discrete Mathematics (SEC 2)", "type": "Theory", "instructors": [], "room": "FUB-802", "period": "N/A" }
             ],
             "Mon": [
-                { "time": "08:30 AM – 10:00 AM", "code": "CS295", "name": "CS295 (SEC 3)", "type": "Theory", "instructors": [], "room": "AB1-902", "period": "N/A" }
+                { "time": "11:50 AM – 01:20 PM", "code": "STA395", "name": "Inferential Statistics (SEC 1)", "type": "Theory", "instructors": [], "room": "FUB-802", "period": "N/A" }
             ],
             "Tue": [
-                { "time": "08:00 AM – 10:00 AM", "code": "CS295 LAB", "name": "CS295 LAB (SEC 3)", "type": "Sessional", "instructors": [], "room": "530 (C. LAB-2)", "period": "N/A" },
-                { "time": "10:10 AM – 11:40 AM", "code": "GEN7226", "name": "GEN7226 (SEC 19)", "type": "Theory", "instructors": [], "room": "AB3-302", "period": "N/A" },
-                { "time": "01:30 PM – 03:00 PM", "code": "MAT291", "name": "MAT291 (SEC 3)", "type": "Theory", "instructors": [], "room": "AB3-401", "period": "N/A" }
+                { "time": "08:00 AM – 10:00 AM", "code": "CS397 Lab", "name": "CS397 Lab", "type": "Sessional", "instructors": [], "room": "534", "period": "N/A" },
+                { "time": "03:10 PM – 04:40 PM", "code": "MAT295", "name": "Discrete Mathematics (SEC 2)", "type": "Theory", "instructors": [], "room": "FUB-802", "period": "N/A" },
+                { "time": "04:50 PM – 06:20 PM", "code": "MKT101", "name": "Intro to Marketing (SEC 6)", "type": "Theory", "instructors": [], "room": "FUB-302", "period": "N/A" }
             ],
             "Wed": [
-                { "time": "08:30 AM – 10:00 AM", "code": "CS295", "name": "CS295 (SEC 3)", "type": "Theory", "instructors": [], "room": "AB1-902", "period": "N/A" }
+                { "time": "11:50 AM – 01:20 PM", "code": "STA395", "name": "Inferential Statistics (SEC 1)", "type": "Theory", "instructors": [], "room": "FUB-802", "period": "N/A" }
             ],
             "Thu": [
-                { "time": "10:10 AM – 11:40 AM", "code": "GEN7226", "name": "GEN7226 (SEC 19)", "type": "Theory", "instructors": [], "room": "AB3-302", "period": "N/A" },
-                { "time": "11:50 AM – 01:20 PM", "code": "STA293", "name": "STA293 (SEC 2)", "type": "Theory", "instructors": [], "room": "FUB-903", "period": "N/A" }
+                { "time": "11:50 AM – 01:20 PM", "code": "CS397", "name": "Data Structure and Algo (SEC 1)", "type": "Theory", "instructors": [], "room": "FUB-701", "period": "N/A" },
+                { "time": "04:50 PM – 06:20 PM", "code": "MKT101", "name": "Intro to Marketing (SEC 6)", "type": "Theory", "instructors": [], "room": "FUB-702", "period": "N/A" }
             ]
         }
     }
