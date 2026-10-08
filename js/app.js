@@ -1999,8 +1999,8 @@ function showNotification(title, options) {
     if (!notificationsEnabled || Notification.permission !== "granted") return;
 
     const defaultOptions = {
-        icon: 'favicon.ico',
-        badge: 'favicon.ico',
+        icon: 'logo_dark_bg.png',
+        badge: 'badge_monochrome.svg',
         ...options
     };
 
@@ -2023,8 +2023,10 @@ function checkUpcomingClassAlerts() {
     const currentDay = dayMap[now.getDay()];
     const currentMin = now.getHours() * 60 + now.getMinutes();
 
-    const dayClasses = currentRoutine.data[currentDay] || [];
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}`;
+    const dayClasses = getEffectiveClassesForDay(currentDay, dateStr);
+
+    let notificationStateChanged = false;
 
     dayClasses.forEach(cls => {
         const range = parseRange(cls.time);
@@ -2033,24 +2035,26 @@ function checkUpcomingClassAlerts() {
         const minutesDiff = range.startMin - currentMin;
         const roomStr = cls.room || 'ECE-102';
 
-        // 1. Alert 10 minutes before class start
-        if (minutesDiff === 10) {
-            const alertKey = `${dateStr}_${cls.code}_10m`;
+        // 1. Alert before class start (range check accounting for background throttling)
+        if (minutesDiff <= alertTimeOffset && minutesDiff > 0) {
+            const alertKey = `${dateStr}_${cls.code}_offset`;
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
-                showNotification(`Class starts in 10 minutes!`, {
+                notificationStateChanged = true;
+                showNotification(`Class starts in ${minutesDiff} minute${minutesDiff === 1 ? '' : 's'}!`, {
                     body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} in Room ${roomStr} starts at ${range.startStr}.`,
-                    tag: `class-10m-${cls.code}`,
+                    tag: `class-offset-${cls.code}`,
                     requireInteraction: true
                 });
             }
         }
 
-        // 2. Alert exactly at class start
-        if (minutesDiff === 0) {
+        // 2. Alert at class start (range check up to 5 minutes past start time)
+        if (minutesDiff <= 0 && minutesDiff >= -5) {
             const alertKey = `${dateStr}_${cls.code}_start`;
             if (!sentNotifications[alertKey]) {
                 sentNotifications[alertKey] = true;
+                notificationStateChanged = true;
                 showNotification(`Class starting now!`, {
                     body: `${cls.code} ${cls.name ? `- ${cls.name}` : ''} is starting in Room ${roomStr}.`,
                     tag: `class-start-${cls.code}`,
@@ -2059,6 +2063,10 @@ function checkUpcomingClassAlerts() {
             }
         }
     });
+
+    if (notificationStateChanged) {
+        localStorage.setItem('sent_notifications', JSON.stringify(sentNotifications));
+    }
 }
 
 function showPwaBanner(platform) {
